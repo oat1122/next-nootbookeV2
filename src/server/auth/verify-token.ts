@@ -1,8 +1,8 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/server/db/client';
-import { personalAccessTokens, users } from '@/server/db/schema';
+import { masterSubRoles, personalAccessTokens, userSubRoles, users } from '@/server/db/schema';
 import { env } from '@/lib/env';
 
 /** role ของ user (จาก enum `users.role` ในระบบเดิม) */
@@ -21,7 +21,19 @@ export type SessionUser = {
   lastName: string | null;
   nickname: string | null;
   position: string | null;
+  /** รหัส sub-role ที่ active (เช่น 'SUPPORT_SALES') — ใช้ตัดสินสิทธิ์ notebook ดู @/server/notebook/permissions */
+  subRoleCodes: string[];
 };
+
+/** โหลด msr_code ของ sub-role ที่ active ทั้งหมดของ user (เลียน User->subRoles ฝั่ง Laravel) */
+async function loadSubRoleCodes(userId: number): Promise<string[]> {
+  const rows = await db
+    .select({ code: masterSubRoles.msrCode })
+    .from(userSubRoles)
+    .innerJoin(masterSubRoles, eq(masterSubRoles.msrId, userSubRoles.usrSubRoleId))
+    .where(and(eq(userSubRoles.usrUserId, userId), eq(masterSubRoles.msrIsActive, true)));
+  return rows.map((r) => r.code);
+}
 
 /** sha256(plaintext) แบบ hex — Sanctum เก็บค่านี้ในคอลัมน์ `personal_access_tokens.token` */
 export function hashToken(plain: string): string {
@@ -86,6 +98,7 @@ export async function loadSessionUser(userId: number): Promise<SessionUser | nul
     lastName: user.userLastname ?? null,
     nickname: user.userNickname ?? null,
     position: user.userPosition ?? null,
+    subRoleCodes: await loadSubRoleCodes(user.userId),
   };
 }
 

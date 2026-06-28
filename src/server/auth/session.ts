@@ -23,6 +23,8 @@ export const DEV_SESSION_USER: SessionUser = {
   lastName: 'Bypass',
   nickname: 'dev',
   position: 'ผู้พัฒนา (bypass)',
+  // ให้ sub-role queue ตอน dev เพื่อทดสอบ flow lead-queue/assign/reserve ได้แม้ role ไม่ใช่ admin
+  subRoleCodes: ['SUPPORT_SALES'],
 };
 
 let bypassWarned = false;

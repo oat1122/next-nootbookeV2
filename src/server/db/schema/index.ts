@@ -6,3 +6,16 @@
 // auth / users
 export * from './users';
 export * from './personal-access-tokens';
+export * from './master-sub-roles';
+export * from './user-sub-roles';
+
+// notebook domain
+export * from './notebooks';
+export * from './notebook-histories';
+
+// customer domain (เฉพาะที่ notebook ต้องใช้: convert / duplicate-check / customer-care source)
+export * from './master-customers';
+export * from './customer-details';
+export * from './master-customer-groups';
+export * from './relation-customer-users';
+export * from './recall-action-logs';

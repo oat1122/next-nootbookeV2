@@ -18,6 +18,10 @@ vi.mock('@/server/db/client', () => ({
       personalAccessTokens: { findFirst: vi.fn() },
       users: { findFirst: vi.fn() },
     },
+    // loadSubRoleCodes(): select(...).from(...).innerJoin(...).where(...) → default ไม่มี sub-role
+    select: vi.fn(() => ({
+      from: () => ({ innerJoin: () => ({ where: () => Promise.resolve([]) }) }),
+    })),
   },
 }));
 
@@ -111,6 +115,7 @@ describe('verifySanctumToken', () => {
       lastName: 'ใจดี',
       nickname: 'ชาย',
       position: 'พนักงานขาย',
+      subRoleCodes: [],
     });
     expect(user).not.toHaveProperty('password');
     expect(user).not.toHaveProperty('newPass');

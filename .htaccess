@@ -1,0 +1,5 @@
+# Next.js custom server (Passenger/Node) — ปิด SPA rewrite ที่ทำให้ /_next/static/* วน loop (AH00124)
+# Passenger ส่งทุก request เข้า Node เอง; Node เสิร์ฟ /_next/static, favicon, ทุกหน้าให้ครบ
+<IfModule mod_rewrite.c>
+  RewriteEngine Off
+</IfModule>

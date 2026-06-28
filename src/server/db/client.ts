@@ -14,6 +14,9 @@ function createPool() {
   const pool = mysql.createPool({
     uri: env.DATABASE_URL,
     decimalNumbers: false,
+    // DATE (เช่น nb_date) อ่านเป็น string 'YYYY-MM-DD' ตรง ๆ — เลี่ยง TZ drift จากการ new Date()
+    // DATETIME/TIMESTAMP ยังคืนเป็น Date object ( logic เช็ค token expiry พึ่งพา)
+    dateStrings: ['DATE'],
     timezone: '+07:00',
     connectionLimit: 10,
   });

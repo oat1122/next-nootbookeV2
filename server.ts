@@ -21,7 +21,7 @@ const logFatal = (kind: string, extra?: Record<string, unknown>) => {
   console.error(
     JSON.stringify({
       level: 'fatal',
-      service: 'next-accountv2-server',
+      service: 'next-nootbookev2-server',
       kind,
       rssMB: Math.round(mem.rss / 1024 / 1024),
       heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
