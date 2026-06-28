@@ -260,7 +260,21 @@ export function toNotebookDTO(
     userNames?: Map<number, string>;
   } = {},
 ) {
-  const base = { ...toNotebookAttributes(nb), manage_by_user: toUserSummary(opts.manageBy) };
+  // nb_is_fresh_queue (stored) เป็น flag denormalize ที่หลายระบบเขียน (Laravel observer / Drizzle /
+  // import) → drift ได้ (พบ row ที่ flag ไม่ตรง state จริง). ตอนแสดงผล "derive on read" จาก state จริง
+  // เสมอด้วย deriveFreshQueue เพื่อให้ป้าย "ใหม่จากคิว" ถูกต้องไม่ว่า flag ที่เก็บไว้จะเพี้ยนหรือไม่
+  const base = {
+    ...toNotebookAttributes(nb),
+    nb_is_fresh_queue: deriveFreshQueue({
+      nbConvertedAt: nb.nbConvertedAt,
+      nbWorkflow: nb.nbWorkflow,
+      nbManageBy: nb.nbManageBy,
+      nbStatus: nb.nbStatus,
+      nbNextFollowupDate: nb.nbNextFollowupDate,
+      nbNextFollowupNote: nb.nbNextFollowupNote,
+    }),
+    manage_by_user: toUserSummary(opts.manageBy),
+  };
 
   if (!opts.histories) return base;
 

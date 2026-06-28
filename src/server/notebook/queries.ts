@@ -159,6 +159,20 @@ export function buildNotebookFilters(
   return and(...conds);
 }
 
+/**
+ * SQL นิยาม "fresh queue" — ตรง logic กับ deriveFreshQueue() ใน mappers เป๊ะ
+ * ใช้แทนการอ่าน column nb_is_fresh_queue (denormalize, หลายระบบเขียน → drift; พบ row ที่ flag
+ * ไม่ตรง state จริง) ทั้งใน ORDER BY และ KPI. เป็น function คืน SQL ใหม่ทุกครั้ง เลี่ยง reuse instance
+ */
+export function isFreshQueueSql(): SQL {
+  return sql`(${notebooks.nbWorkflow} = 'lead_queue'
+    AND ${notebooks.nbManageBy} IS NOT NULL
+    AND ${notebooks.nbConvertedAt} IS NULL
+    AND (${notebooks.nbStatus} IS NULL OR TRIM(${notebooks.nbStatus}) = '')
+    AND ${notebooks.nbNextFollowupDate} IS NULL
+    AND (${notebooks.nbNextFollowupNote} IS NULL OR TRIM(${notebooks.nbNextFollowupNote}) = ''))`;
+}
+
 export type NotebookListResult =
   | { paginated: true; data: NotebookDTO[]; total: number; perPage: number; page: number; lastPage: number }
   | { paginated: false; data: NotebookDTO[] };
@@ -172,7 +186,7 @@ export async function listNotebooks(
   const where = buildNotebookFilters(filters, user);
   const order = [
     desc(notebooks.nbIsFavorite),
-    desc(notebooks.nbIsFreshQueue),
+    desc(isFreshQueueSql()),
     desc(notebooks.createdAt),
   ];
   const wantHistories = (filters.include ?? '').includes('histories');

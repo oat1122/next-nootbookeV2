@@ -40,6 +40,9 @@ export const FOLLOW: Record<FollowTone, FollowMeta> = {
   none: { bg: '#F1EFEB', fg: '#9A938A', accent: '#D8D3CC' },
 };
 
+/** ไฮไลต์ลีดใหม่จากคิว (แท็บ "ลูกค้าของฉัน") — โทนเขียวอมฟ้า แยกจากแดง overdue / เขียว "ได้งาน" */
+export const FRESH = { tint: '#F0FAF6', accent: '#1FA088', pillBg: '#D7F0E9', pillFg: '#176F5E' } as const;
+
 const AVATAR: [string, string][] = [
   ['#F4E3DC', '#9A5B14'],
   ['#E3ECDD', '#3C7A55'],
@@ -70,6 +73,24 @@ export function avatarPair(name: string | null | undefined): [string, string] {
   return AVATAR[s];
 }
 
+/** สไตล์ avatar (inline) ขนาดยืดหยุ่น — สำหรับ chip เล็ก/dialog ที่ <Avatar> ไม่ครอบคลุม */
+export function avatarStyle(name: string | null | undefined, size: number): React.CSSProperties {
+  const [bg, fg] = avatarPair(name);
+  return {
+    display: 'flex',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: size,
+    height: size,
+    borderRadius: size >= 36 ? 11 : 8,
+    background: bg,
+    color: fg,
+    fontWeight: 600,
+    fontSize: size >= 36 ? 14 : 11.5,
+  };
+}
+
 /** จำนวนวัน a - b (ทั้งคู่ 'YYYY-MM-DD') */
 function dayDiff(a: string, b: string): number {
   const da = Date.parse(`${a}T00:00:00`);
@@ -93,6 +114,19 @@ export function followInfo(
   if (diff === 1) return { tone: 'soon', label: 'พรุ่งนี้' };
   if (diff <= 3) return { tone: 'soon', label: `อีก ${diff} วัน` };
   return { tone: 'upcoming', label: `อีก ${diff} วัน` };
+}
+
+/** เวลารอในคิวกลาง (จาก created_at) — เขียว=เข้าใหม่วันนี้, กลาง=รอ 1-2 วัน, แดง=รอเกิน 2 วัน */
+export function queueWaitInfo(
+  createdAtIso: string | null | undefined,
+  todayStr: string = bangkokToday(),
+): { bg: string; fg: string; label: string } {
+  if (!createdAtIso) return { bg: '#EAF7EE', fg: '#1B7A45', label: 'เข้าใหม่วันนี้' };
+  const created = new Date(createdAtIso).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+  const d = dayDiff(todayStr, created);
+  if (d <= 0) return { bg: '#EAF7EE', fg: '#1B7A45', label: 'เข้าใหม่วันนี้' };
+  if (d <= 2) return { bg: '#F4F0EA', fg: '#5C564D', label: `รอ ${d} วัน` };
+  return { bg: '#FBE3DF', fg: '#B23A2B', label: `รอ ${d} วัน` };
 }
 
 const THAI_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];

@@ -19,7 +19,7 @@ import {
   SUB_ROLE,
 } from './permissions';
 import { isCreateAction, normalizeHistoryAction, resolvePeriod } from './kpi-period';
-import { buildNotebookFilters, loadUserMap, mapNotebookRows } from './queries';
+import { buildNotebookFilters, isFreshQueueSql, loadUserMap, mapNotebookRows } from './queries';
 import { parseJson, type UserSummaryInput } from './mappers';
 import type { AllTabStatsFilters, KpiSummaryParams, SelfReportFilters } from './validation';
 
@@ -232,8 +232,9 @@ export async function getNotebookAllTabStats(filters: AllTabStatsFilters, user: 
   const [row] = await db
     .select({
       total: sql<number>`COUNT(*)`,
-      called: sql<number>`SUM(CASE WHEN ${notebooks.nbWorkflow} = 'lead_queue' AND ${notebooks.nbManageBy} IS NOT NULL AND ${notebooks.nbIsFreshQueue} = 0 THEN 1 ELSE 0 END)`,
-      pending: sql<number>`SUM(CASE WHEN ${notebooks.nbWorkflow} = 'lead_queue' AND ${notebooks.nbIsFreshQueue} = 1 THEN 1 ELSE 0 END)`,
+      // derive fresh จาก state จริง (column nb_is_fresh_queue drift) — ใช้ isFreshQueueSql ตัวเดียวกับ ORDER BY
+      called: sql<number>`SUM(CASE WHEN ${notebooks.nbWorkflow} = 'lead_queue' AND ${notebooks.nbManageBy} IS NOT NULL AND NOT ${isFreshQueueSql()} THEN 1 ELSE 0 END)`,
+      pending: sql<number>`SUM(CASE WHEN ${isFreshQueueSql()} THEN 1 ELSE 0 END)`,
       converted: sql<number>`SUM(CASE WHEN ${notebooks.nbConvertedCustomerId} IS NOT NULL THEN 1 ELSE 0 END)`,
     })
     .from(notebooks)

@@ -115,9 +115,13 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
         {/* page header */}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[27px] font-bold tracking-tight">รายการที่ต้องติดตาม</h1>
+            <h1 className="text-[27px] font-bold tracking-tight">
+              {scope === 'queue' ? 'คิวกลาง — รอรับลีด' : 'รายการที่ต้องติดตาม'}
+            </h1>
             <p className="text-ink-2 mt-1.5 text-[14.5px]">
-              จดทุกครั้งที่คุยกับลูกค้า แล้วระบบจะคอยเตือนว่าต้องติดตามใครต่อ — ไม่พลาดทุกดีล
+              {scope === 'queue'
+                ? 'ลีดใหม่ที่ยังไม่มีเจ้าของ เลือกได้ทีละหลายรายการแล้วมอบหมายให้ทีมขายในคลิกเดียว'
+                : 'จดทุกครั้งที่คุยกับลูกค้า แล้วระบบจะคอยเตือนว่าต้องติดตามใครต่อ — ไม่พลาดทุกดีล'}
             </p>
           </div>
           <NotebookCreateBar perms={perms} />

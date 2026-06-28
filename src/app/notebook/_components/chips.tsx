@@ -1,11 +1,13 @@
 import {
   ACTION,
   FOLLOW,
+  FRESH,
   avatarPair,
   chipStyle,
   dotStyle,
   followInfo,
   initials,
+  queueWaitInfo,
   statusMeta,
 } from '../_lib/notebook-display';
 
@@ -39,6 +41,18 @@ export function StatusChip({ status }: { status: string | null | undefined }) {
   );
 }
 
+/** ป้าย "ใหม่จากคิว" — ลีดที่เพิ่งรับจากคิวกลางแต่ยังไม่กรอกสถานะ/ติดตาม (ใช้ทั้งตาราง+การ์ด) */
+export function FreshQueueBadge() {
+  return (
+    <span
+      className="rounded-full px-1.5 py-px text-[11px] font-semibold"
+      style={{ background: FRESH.pillBg, color: FRESH.pillFg }}
+    >
+      ใหม่จากคิว
+    </span>
+  );
+}
+
 export function ActionChip({ action }: { action: string | null | undefined }) {
   const a = action ? ACTION[action] : undefined;
   return <span style={chipStyle(a?.bg ?? '#F0EEEA', a?.fg ?? '#8A847C')}>{a?.label ?? 'ยังไม่กำหนด'}</span>;
@@ -54,4 +68,10 @@ export function FollowChip({
   const f = followInfo(date, status);
   const ft = FOLLOW[f.tone];
   return <span style={chipStyle(ft.bg, ft.fg)}>{f.label}</span>;
+}
+
+/** ป้าย "เข้าคิวเมื่อ" — เวลารอในคิวกลาง คำนวณจาก created_at (ใช้แทน FollowChip ในแท็บคิวกลาง) */
+export function QueueWaitChip({ createdAt }: { createdAt: string | null | undefined }) {
+  const w = queueWaitInfo(createdAt);
+  return <span style={chipStyle(w.bg, w.fg)}>{w.label}</span>;
 }

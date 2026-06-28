@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { convertNotebook, deleteNotebook, reserveNotebook } from '@/server/notebook/actions';
 import { useNotebookAction } from '../_lib/run-action';
 import type { NotebookItem, NotebookPerms } from '../_lib/types';
@@ -66,43 +66,48 @@ export function NotebookUIProvider({
 
   const detail = detailId != null ? (notebooks.find((n) => n.id === detailId) ?? null) : null;
 
-  const ctx: Ctx = {
-    perms,
-    pending,
-    selected,
-    openCreate(type) {
-      if (type === 'standard') setEdit({ mode: 'create' });
-      else if (type === 'lead') setLead(true);
-      else if (type === 'care') setCare(true);
-      else setPersonal(true);
-    },
-    openEdit(item) {
-      setDetailId(null);
-      setEdit({ mode: 'edit', item });
-    },
-    openDetail: (id) => setDetailId(id),
-    openDelete: (item) => setDel(item),
-    openAssign: (items) => setAssignItems(items),
-    openAssignSelected: () => setAssignItems(notebooks.filter((n) => selected.has(n.id))),
-    toggleSelect: (id) =>
-      setSelected((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      }),
-    selectAll: (ids) => setSelected(new Set(ids)),
-    clearSelection: () => setSelected(new Set()),
-    convert(item) {
-      run(() => convertNotebook(item.id), {
-        success: `สร้าง “${item.nb_customer_name ?? ''}” เป็นลูกค้าแล้ว`,
-        onDone: () => setDetailId(null),
-      });
-    },
-    reserve(item) {
-      run(() => reserveNotebook(item.id), { success: 'รับลีดเข้าดูแลแล้ว' });
-    },
-  };
+  // memo ค่า context ให้ identity นิ่ง — เปิด/ปิด overlay (edit/detail/del/assign/…)
+  // ไม่แตะ field ใดใน ctx จึงไม่ทำให้ board ทั้งหน้า re-render ตอนเปิด dialog
+  const ctx: Ctx = useMemo(
+    () => ({
+      perms,
+      pending,
+      selected,
+      openCreate(type) {
+        if (type === 'standard') setEdit({ mode: 'create' });
+        else if (type === 'lead') setLead(true);
+        else if (type === 'care') setCare(true);
+        else setPersonal(true);
+      },
+      openEdit(item) {
+        setDetailId(null);
+        setEdit({ mode: 'edit', item });
+      },
+      openDetail: (id) => setDetailId(id),
+      openDelete: (item) => setDel(item),
+      openAssign: (items) => setAssignItems(items),
+      openAssignSelected: () => setAssignItems(notebooks.filter((n) => selected.has(n.id))),
+      toggleSelect: (id) =>
+        setSelected((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        }),
+      selectAll: (ids) => setSelected(new Set(ids)),
+      clearSelection: () => setSelected(new Set()),
+      convert(item) {
+        run(() => convertNotebook(item.id), {
+          success: `สร้าง “${item.nb_customer_name ?? ''}” เป็นลูกค้าแล้ว`,
+          onDone: () => setDetailId(null),
+        });
+      },
+      reserve(item) {
+        run(() => reserveNotebook(item.id), { success: 'รับลีดเข้าดูแลแล้ว' });
+      },
+    }),
+    [perms, pending, selected, notebooks, run],
+  );
 
   function doDelete() {
     if (!del) return;

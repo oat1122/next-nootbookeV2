@@ -6,6 +6,7 @@ import {
   diffAttributes,
   parseJson,
   toHistoryDTO,
+  toNotebookDTO,
 } from './mappers';
 
 type HistoryRow = typeof notebookHistories.$inferSelect;
@@ -89,6 +90,19 @@ describe('deriveFreshQueue (port observer)', () => {
     expect(deriveFreshQueue({ ...base, nbManageBy: null })).toBe(false);
     expect(deriveFreshQueue({ ...base, nbStatus: 'called' })).toBe(false);
     expect(deriveFreshQueue({ ...base, nbNextFollowupNote: 'x' })).toBe(false);
+  });
+});
+
+describe('toNotebookDTO nb_is_fresh_queue (derive on read — กัน stored flag เพี้ยน)', () => {
+  it('derive=true แม้ stored flag=false (false negative ใน DB เช่น row #459)', () => {
+    const dto = toNotebookDTO(row({ nbWorkflow: 'lead_queue', nbManageBy: 5, nbIsFreshQueue: false }));
+    expect(dto.nb_is_fresh_queue).toBe(true);
+  });
+  it('derive=false แม้ stored flag=true (false positive ใน DB)', () => {
+    const dto = toNotebookDTO(
+      row({ nbWorkflow: 'lead_queue', nbManageBy: 5, nbStatus: 'called', nbIsFreshQueue: true }),
+    );
+    expect(dto.nb_is_fresh_queue).toBe(false);
   });
 });
 

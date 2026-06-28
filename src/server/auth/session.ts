@@ -23,8 +23,11 @@ export const DEV_SESSION_USER: SessionUser = {
   lastName: 'Bypass',
   nickname: 'dev',
   position: 'ผู้พัฒนา (bypass)',
-  // ให้ sub-role queue ตอน dev เพื่อทดสอบ flow lead-queue/assign/reserve ได้แม้ role ไม่ใช่ admin
-  subRoleCodes: ['SUPPORT_SALES'],
+  // sub-role ตอน dev: ตั้งผ่าน DEV_USER_SUB_ROLES (คั่น comma) ไม่งั้นให้ครบทุกตัวที่มีจริงใน DB
+  // (master_sub_roles ที่ active) — SUPPORT_SALES+HEAD_OFFLINE ก็พอให้เห็นเมนู queue/assign/reserve ครบ
+  subRoleCodes: env.DEV_USER_SUB_ROLES
+    ? env.DEV_USER_SUB_ROLES.split(',').map((s) => s.trim()).filter(Boolean)
+    : ['SUPPORT_SALES', 'HEAD_ONLINE', 'HEAD_OFFLINE', 'SALES_ONLINE', 'SALES_OFFLINE'],
 };
 
 let bypassWarned = false;

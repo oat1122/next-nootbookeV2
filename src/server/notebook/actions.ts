@@ -931,8 +931,26 @@ export const listAssignableSalesUsers = authedAction(async (user: SessionUser) =
       ),
     );
 
+  // ภาระงานปัจจุบันต่อคน (ลีด standard ที่ยังไม่ converted) — โชว์ใน assign dialog
+  const ids = [...new Set(rows.map((r) => r.userId))];
+  const loadRows = ids.length
+    ? await db
+        .select({ uid: notebooks.nbManageBy, count: sql<number>`count(*)` })
+        .from(notebooks)
+        .where(
+          and(
+            inArray(notebooks.nbManageBy, ids),
+            isNull(notebooks.nbConvertedAt),
+            eq(notebooks.nbEntryType, 'standard'),
+          ),
+        )
+        .groupBy(notebooks.nbManageBy)
+    : [];
+  const loadMap = new Map(loadRows.map((r) => [Number(r.uid), Number(r.count)]));
+
   return rows.map((r) => ({
     user_id: r.userId,
     name: resolveUserDisplayName(r) ?? String(r.userId),
+    load: loadMap.get(r.userId) ?? 0,
   }));
 });

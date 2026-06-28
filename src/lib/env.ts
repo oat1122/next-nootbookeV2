@@ -34,6 +34,9 @@ export const env = createEnv({
     DEV_USER_ID: z.string().optional(),
     // F6 dev-only: role ของ mock user ตอน bypass (default 'sale' — ตั้งใจไม่ให้ default เป็น admin)
     DEV_USER_ROLE: z.string().optional(),
+    // dev-only: sub-role codes ของ mock user (คั่นด้วย comma เช่น "SUPPORT_SALES,HEAD_OFFLINE")
+    // ไม่ตั้ง = ให้ครบทุก sub-role เพื่อเห็นเมนู notebook ครบตอน dev (ดู session.ts)
+    DEV_USER_SUB_ROLES: z.string().optional(),
     TZ: z.string().default('Asia/Bangkok'),
   },
   client: {},
@@ -46,6 +49,7 @@ export const env = createEnv({
     SANCTUM_MAX_TOKEN_AGE_DAYS: process.env.SANCTUM_MAX_TOKEN_AGE_DAYS,
     DEV_USER_ID: process.env.DEV_USER_ID,
     DEV_USER_ROLE: process.env.DEV_USER_ROLE,
+    DEV_USER_SUB_ROLES: process.env.DEV_USER_SUB_ROLES,
     TZ: process.env.TZ,
   },
   emptyStringAsUndefined: true,

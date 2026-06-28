@@ -1,9 +1,9 @@
 'use client';
 
-import { Eye, Pencil, UserPlus, Trash2, NotebookPen, HandHelping } from 'lucide-react';
+import { Eye, Pencil, UserPlus, Trash2, NotebookPen, HandHelping, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { FOLLOW, followInfo } from '../_lib/notebook-display';
-import { Avatar, StatusChip, ActionChip, FollowChip } from './chips';
+import { FOLLOW, FRESH, avatarStyle, followInfo, initials } from '../_lib/notebook-display';
+import { Avatar, StatusChip, ActionChip, FollowChip, FreshQueueBadge, QueueWaitChip } from './chips';
 import { useNotebookUI } from './notebook-ui';
 import type { NotebookItem, Scope, ViewMode } from '../_lib/types';
 
@@ -60,6 +60,7 @@ export function NotebookBoard({
   const selectable = scope === 'queue' && (ui.perms.canReserve || ui.perms.canAssign);
   const g = selectable ? GRID_SEL : GRID;
   const allSelected = selectable && notebooks.every((n) => ui.selected.has(n.id));
+  const selItems = selectable ? notebooks.filter((n) => ui.selected.has(n.id)) : [];
 
   return (
     <>
@@ -82,7 +83,7 @@ export function NotebookBoard({
           <div>ติดต่อ</div>
           <div>สถานะ</div>
           <div>ขั้นตอนถัดไป</div>
-          <div>ติดตามครั้งหน้า</div>
+          <div>{scope === 'queue' ? 'เข้าคิวเมื่อ' : 'ติดตามครั้งหน้า'}</div>
           <div className="text-right">จัดการ</div>
         </div>
         {notebooks.map((n) => (
@@ -90,24 +91,69 @@ export function NotebookBoard({
         ))}
       </div>
 
-      {selectable && ui.selected.size > 0 && (
-        <div className="border-border sticky bottom-4 z-10 mt-3 flex items-center justify-between gap-3 rounded-2xl border bg-white px-5 py-3 shadow-lg">
-          <span className="text-[14px] font-semibold">เลือก {ui.selected.size} รายการ</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={ui.clearSelection}
-              className="border-border text-ink-2 hover:bg-surface-2 rounded-xl border bg-white px-4 py-2 text-[13.5px] font-medium"
-            >
-              ล้าง
-            </button>
-            <button
-              type="button"
-              onClick={ui.openAssignSelected}
-              className="bg-primary text-primary-foreground rounded-xl px-5 py-2 text-[13.5px] font-semibold hover:brightness-95"
-            >
-              มอบหมาย
-            </button>
+      {selectable && selItems.length > 0 && (
+        <div
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
+          style={{ width: 'min(1180px, calc(100% - 48px))' }}
+        >
+          <div
+            className="border-border flex items-center gap-4 rounded-[18px] border bg-white py-3 pr-3.5 pl-[18px]"
+            style={{ boxShadow: '0 18px 44px rgba(40,30,20,.16), 0 4px 12px rgba(40,30,20,.08)' }}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex shrink-0 flex-col leading-tight">
+                <span className="num text-[20px] font-bold" style={{ color: '#e1543b' }}>
+                  {selItems.length}
+                </span>
+                <span className="text-[11.5px] font-semibold" style={{ color: '#857e74' }}>
+                  เลือกไว้
+                </span>
+              </div>
+              <div className="h-[34px] w-px shrink-0" style={{ background: '#ece7df' }} />
+              <div className="flex min-w-0 items-center gap-2 overflow-x-auto py-0.5">
+                {selItems.map((it) => (
+                  <div
+                    key={it.id}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pr-2.5 pl-1"
+                    style={{ background: '#faf7f3', borderColor: '#ece7df' }}
+                  >
+                    <span style={avatarStyle(it.nb_customer_name, 24)}>
+                      {initials(it.nb_customer_name)}
+                    </span>
+                    <span className="text-[13px] font-medium whitespace-nowrap">
+                      {it.nb_customer_name || '—'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => ui.toggleSelect(it.id)}
+                      aria-label="เอาออก"
+                      className="flex size-[18px] shrink-0 items-center justify-center rounded-full"
+                      style={{ background: '#ece7df', color: '#857e74' }}
+                    >
+                      <X className="size-[11px]" strokeWidth={2.4} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={ui.clearSelection}
+                className="border-border text-ink-2 hover:bg-surface-2 rounded-xl border bg-white px-4 py-2.5 text-[13.5px] font-semibold"
+              >
+                ล้าง
+              </button>
+              <button
+                type="button"
+                onClick={ui.openAssignSelected}
+                className="text-primary-foreground inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-[13.5px] font-semibold"
+                style={{ background: '#e1543b', boxShadow: '0 2px 8px rgba(225,84,59,.3)' }}
+              >
+                <UserPlus className="size-4" />
+                มอบหมาย {selItems.length} รายการ
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -115,7 +161,7 @@ export function NotebookBoard({
   );
 }
 
-function useRowState(item: NotebookItem) {
+function useRowState(item: NotebookItem, scope: Scope) {
   const ui = useNotebookUI();
   const { perms } = ui;
   const canEdit = perms.canManageAll || item.nb_manage_by === perms.userId;
@@ -127,7 +173,9 @@ function useRowState(item: NotebookItem) {
     !item.nb_converted_at;
   const converted = !!item.nb_converted_at;
   const overdue = followInfo(item.nb_next_followup_date, item.nb_status).tone === 'overdue';
-  return { ui, perms, canEdit, canQueueAssign, converted, overdue };
+  // ลีดใหม่จากคิว — เน้นเฉพาะแท็บ "ลูกค้าของฉัน" เพื่อบอก sales ว่ามีลีดใหม่ต้องรีบโทร
+  const fresh = item.nb_is_fresh_queue && scope === 'mine';
+  return { ui, perms, canEdit, canQueueAssign, converted, overdue, fresh };
 }
 
 function TableRow({
@@ -141,7 +189,7 @@ function TableRow({
   selectable: boolean;
   gridClass: string;
 }) {
-  const { ui, canEdit, canQueueAssign, converted, overdue } = useRowState(item);
+  const { ui, canEdit, canQueueAssign, converted, overdue, fresh } = useRowState(item, scope);
   return (
     <div
       className={cn(gridClass, 'border-b px-5 transition-colors hover:bg-[#FBF8F4]')}
@@ -149,8 +197,12 @@ function TableRow({
         borderColor: '#F2EDE5',
         paddingTop: 16,
         paddingBottom: 16,
-        background: overdue ? '#FFF8F6' : '#fff',
-        boxShadow: overdue ? `inset 3px 0 0 ${FOLLOW.overdue.accent}` : undefined,
+        background: fresh ? FRESH.tint : overdue ? '#FFF8F6' : '#fff',
+        boxShadow: fresh
+          ? `inset 3px 0 0 ${FRESH.accent}`
+          : overdue
+            ? `inset 3px 0 0 ${FOLLOW.overdue.accent}`
+            : undefined,
       }}
     >
       {selectable && (
@@ -175,11 +227,7 @@ function TableRow({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[14.5px] font-semibold">{item.nb_customer_name || '—'}</span>
-            {item.nb_is_fresh_queue && (
-              <span className="rounded-full px-1.5 py-px text-[11px] font-semibold" style={{ background: '#FBE3DF', color: '#B23A2B' }}>
-                ใหม่จากคิว
-              </span>
-            )}
+            {(fresh || scope === 'queue') && <FreshQueueBadge />}
             {item.nb_is_online && (
               <span className="rounded-full px-1.5 py-px text-[11px] font-medium" style={{ background: '#E3EDF8', color: '#2C6BAE' }}>
                 ออนไลน์
@@ -207,19 +255,29 @@ function TableRow({
         <ActionChip action={item.nb_action} />
       </div>
       <div className="self-center">
-        <FollowChip date={item.nb_next_followup_date} status={item.nb_status} />
+        {scope === 'queue' ? (
+          <QueueWaitChip createdAt={item.created_at} />
+        ) : (
+          <FollowChip date={item.nb_next_followup_date} status={item.nb_status} />
+        )}
       </div>
 
       {/* actions */}
       <div className="flex items-center justify-end gap-1 self-center">
+        {canQueueAssign && scope === 'queue' && (
+          <button
+            type="button"
+            onClick={() => ui.openAssign([item])}
+            className="inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[13px] font-semibold whitespace-nowrap"
+            style={{ borderColor: '#BFE3CD', background: '#EAF7EE', color: '#1B7A45' }}
+          >
+            <HandHelping className="size-[15px]" />
+            รับลีดนี้
+          </button>
+        )}
         <IconBtn title="ดูรายละเอียด" onClick={() => ui.openDetail(item.id)}>
           <Eye className="size-[18px]" />
         </IconBtn>
-        {canQueueAssign && scope === 'queue' && (
-          <IconBtn title="รับลีดนี้" color="#1E7A45" onClick={() => ui.openAssign([item])}>
-            <HandHelping className="size-[18px]" />
-          </IconBtn>
-        )}
         {canEdit && (
           <IconBtn title="แก้ไข" onClick={() => ui.openEdit(item)}>
             <Pencil className="size-[17px]" />
@@ -241,16 +299,25 @@ function TableRow({
 }
 
 function CardRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
-  const { ui, canEdit, canQueueAssign, overdue } = useRowState(item);
+  const { ui, canEdit, canQueueAssign, overdue, fresh } = useRowState(item, scope);
   return (
     <div
       className="border-border rounded-2xl border bg-white p-4 shadow-sm"
-      style={overdue ? { borderColor: '#F3C9C0' } : undefined}
+      style={
+        fresh
+          ? { borderColor: FRESH.accent, background: FRESH.tint }
+          : overdue
+            ? { borderColor: '#F3C9C0' }
+            : undefined
+      }
     >
       <button type="button" onClick={() => ui.openDetail(item.id)} className="flex w-full items-start gap-2.5 text-left">
         <Avatar name={item.nb_customer_name} />
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold">{item.nb_customer_name || '—'}</div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[15px] font-semibold">{item.nb_customer_name || '—'}</span>
+            {fresh && <FreshQueueBadge />}
+          </div>
           <div className="text-ink-3 mt-0.5 text-[13px]">
             {item.nb_contact_person || 'ไม่ระบุ'} · {item.nb_contact_number || '—'}
           </div>
