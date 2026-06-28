@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireUser } from '@/server/auth';
-import { listNotebooks, getNotebookStats } from '@/server/notebook/queries';
+import { listNotebooks, getNotebookStats, listNotebookOwners } from '@/server/notebook/queries';
 import {
   canManageAllNotebooks,
   canDelete,
@@ -18,6 +18,7 @@ import { notebookHref } from './_lib/href';
 import { ScopeTabs } from './_components/scope-tabs';
 import { StatCards } from './_components/stat-cards';
 import { NotebookToolbar } from './_components/notebook-toolbar';
+import { UserFilter } from './_components/user-filter';
 import { NotebookBoard } from './_components/notebook-board';
 import { NotebookCreateBar } from './_components/notebook-create-bar';
 import { NotebookUIProvider } from './_components/notebook-ui';
@@ -51,6 +52,8 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
   const start_date = str('start_date');
   const end_date = str('end_date');
   const page = Math.max(1, Number(str('page')) || 1);
+  // ตัวกรองผู้ดูแล (manage_by) ใช้ได้เฉพาะแท็บ all เท่านั้น
+  const manage_by = scope === 'all' ? Number(str('manage_by')) || undefined : undefined;
 
   const filters: IndexFilters = {
     scope,
@@ -60,16 +63,25 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
     search: search ?? null,
     start_date: start_date ?? null,
     end_date: end_date ?? null,
+    manage_by: manage_by ?? null,
     include: 'histories',
     paginate: true,
     per_page: 15,
   };
 
-  const [list, statsEntries] = await Promise.all([
+  const [list, statsEntries, owners] = await Promise.all([
     listNotebooks(filters, user, page),
     Promise.all(
-      allowedScopes.map(async (s) => [s, await getNotebookStats({ scope: s, entry_type }, user)] as const),
+      // manage_by กรองได้เฉพาะแท็บ all → ป้ายเลข mine/queue คงเป็นยอดรวมตามเดิม
+      allowedScopes.map(
+        async (s) =>
+          [
+            s,
+            await getNotebookStats({ scope: s, entry_type, manage_by: s === 'all' ? manage_by : null }, user),
+          ] as const,
+      ),
     ),
+    scope === 'all' ? listNotebookOwners(user) : Promise.resolve([]),
   ]);
   const statsByScope = Object.fromEntries(statsEntries) as Record<Scope, (typeof statsEntries)[number][1]>;
   const stats = statsByScope[scope];
@@ -99,6 +111,7 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
     search,
     start_date,
     end_date,
+    manage_by: manage_by ? String(manage_by) : undefined,
     view: view === 'table' ? undefined : view,
   };
 
@@ -136,6 +149,12 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
         />
 
         <StatCards stats={stats} scope={scope} />
+
+        {scope === 'all' && owners.length > 0 && (
+          <div className="mb-3.5">
+            <UserFilter current={current} owners={owners} value={manage_by} />
+          </div>
+        )}
 
         <NotebookToolbar current={current} status={status} view={view} search={search ?? ''} />
 

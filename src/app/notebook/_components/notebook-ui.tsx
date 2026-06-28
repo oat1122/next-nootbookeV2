@@ -7,6 +7,7 @@ import type { NotebookItem, NotebookPerms } from '../_lib/types';
 import { NotebookFormModal } from './notebook-form-modal';
 import { NotebookDetailDrawer } from './notebook-detail-drawer';
 import { DeleteConfirm } from './delete-confirm';
+import { ConvertConfirm } from './convert-confirm';
 import { LeadFormModal } from './lead-form-modal';
 import { CustomerCareModal } from './customer-care-modal';
 import { PersonalActivityModal } from './personal-activity-modal';
@@ -61,6 +62,7 @@ export function NotebookUIProvider({
   const [personal, setPersonal] = useState(false);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [del, setDel] = useState<NotebookItem | null>(null);
+  const [convertItem, setConvertItem] = useState<NotebookItem | null>(null);
   const [assignItems, setAssignItems] = useState<NotebookItem[] | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
@@ -96,18 +98,25 @@ export function NotebookUIProvider({
         }),
       selectAll: (ids) => setSelected(new Set(ids)),
       clearSelection: () => setSelected(new Set()),
-      convert(item) {
-        run(() => convertNotebook(item.id), {
-          success: `สร้าง “${item.nb_customer_name ?? ''}” เป็นลูกค้าแล้ว`,
-          onDone: () => setDetailId(null),
-        });
-      },
+      convert: (item) => setConvertItem(item),
       reserve(item) {
         run(() => reserveNotebook(item.id), { success: 'รับลีดเข้าดูแลแล้ว' });
       },
     }),
     [perms, pending, selected, notebooks, run],
   );
+
+  function doConvert() {
+    if (!convertItem) return;
+    const target = convertItem;
+    run(() => convertNotebook(target.id), {
+      success: `สร้าง “${target.nb_customer_name ?? ''}” เป็นลูกค้าแล้ว`,
+      onDone: () => {
+        setConvertItem(null);
+        if (detailId === target.id) setDetailId(null);
+      },
+    });
+  }
 
   function doDelete() {
     if (!del) return;
@@ -149,6 +158,15 @@ export function NotebookUIProvider({
           pending={pending}
           onClose={() => setDel(null)}
           onConfirm={doDelete}
+        />
+      )}
+
+      {convertItem && (
+        <ConvertConfirm
+          item={convertItem}
+          pending={pending}
+          onClose={() => setConvertItem(null)}
+          onConfirm={doConvert}
         />
       )}
 

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { createNotebook, updateNotebook } from '@/server/notebook/actions';
 import { useNotebookAction } from '../_lib/run-action';
 import { ACTION, ACTION_ORDER, STATUS, STATUS_ORDER } from '../_lib/notebook-display';
+import { useDupCheck, DupWarning } from './dup-check';
 import type { NotebookItem } from '../_lib/types';
 
 type Draft = {
@@ -73,6 +74,8 @@ export function NotebookFormModal({
   const [draft, setDraft] = useState<Draft>(() => (item ? fromItem(item) : emptyDraft()));
   const [error, setError] = useState('');
   const { pending, run } = useNotebookAction();
+  const dup = useDupCheck(draft.nb_contact_number, draft.nb_email, mode === 'edit' ? (item?.id ?? null) : null);
+  const dupNames = [...dup.customers, ...dup.notebooks];
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -178,6 +181,14 @@ export function NotebookFormModal({
                 </ToggleBtn>
               </div>
             </div>
+            {dup.checking && dupNames.length === 0 && (
+              <div className="mt-3.5 text-[13px] text-muted-foreground">กำลังตรวจสอบข้อมูลซ้ำ…</div>
+            )}
+            {dupNames.length > 0 && (
+              <div className="mt-3.5">
+                <DupWarning names={dupNames} />
+              </div>
+            )}
           </div>
 
           <Step n={2} label="ตอนนี้ดีลไปถึงไหนแล้ว" />

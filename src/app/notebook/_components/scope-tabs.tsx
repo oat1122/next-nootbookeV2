@@ -27,7 +27,12 @@ export function ScopeTabs({
           return (
             <Link
               key={s}
-              href={notebookHref(current, { scope: s === 'mine' ? null : s, status: null, page: null })}
+              href={notebookHref(current, {
+                scope: s === 'mine' ? null : s,
+                status: null,
+                page: null,
+                manage_by: null,
+              })}
               className={cn(
                 'inline-flex items-center gap-2 rounded-[10px] px-[18px] py-[9px] text-[14.5px] font-semibold whitespace-nowrap transition-all',
                 on ? 'bg-white text-foreground shadow-sm' : 'text-ink-3 hover:text-foreground',

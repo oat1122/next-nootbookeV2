@@ -316,17 +316,26 @@ function bangkokToday(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
 }
 
-export type NotebookStats = { total: number; dueToday: number; overdue: number; won: number };
+export type NotebookStats = {
+  total: number;
+  dueToday: number;
+  overdue: number;
+  won: number;
+  converted: number;
+};
 
 /**
  * สรุปตัวเลข stat cards — อิงแค่ scope + entry_type (ไม่อิง status/search/date chip)
  * ให้ตัวเลขภาพรวมของแท็บคงที่ ไม่แกว่งตามตัวกรองรายการ (เลียนดีไซน์ที่นับจาก scope ล้วน)
  */
 export async function getNotebookStats(
-  filters: { scope?: string | null; entry_type?: string | null },
+  filters: { scope?: string | null; entry_type?: string | null; manage_by?: number | null },
   user: SessionUser,
 ): Promise<NotebookStats> {
-  const where = buildNotebookFilters({ scope: filters.scope, entry_type: filters.entry_type }, user);
+  const where = buildNotebookFilters(
+    { scope: filters.scope, entry_type: filters.entry_type, manage_by: filters.manage_by },
+    user,
+  );
   const today = bangkokToday();
   const notClosed = sql`(${notebooks.nbStatus} IS NULL OR ${notebooks.nbStatus} NOT IN ('ได้งาน', 'หลุด', 'ไม่ได้งาน'))`;
   const [row] = await db
@@ -335,6 +344,7 @@ export async function getNotebookStats(
       dueToday: sql<number>`SUM(CASE WHEN ${notClosed} AND ${notebooks.nbNextFollowupDate} = ${today} THEN 1 ELSE 0 END)`,
       overdue: sql<number>`SUM(CASE WHEN ${notClosed} AND ${notebooks.nbNextFollowupDate} IS NOT NULL AND ${notebooks.nbNextFollowupDate} < ${today} THEN 1 ELSE 0 END)`,
       won: sql<number>`SUM(CASE WHEN ${notebooks.nbStatus} = 'ได้งาน' THEN 1 ELSE 0 END)`,
+      converted: sql<number>`SUM(CASE WHEN ${notebooks.nbConvertedAt} IS NOT NULL THEN 1 ELSE 0 END)`,
     })
     .from(notebooks)
     .where(where);
@@ -344,7 +354,24 @@ export async function getNotebookStats(
     dueToday: Number(row?.dueToday ?? 0),
     overdue: Number(row?.overdue ?? 0),
     won: Number(row?.won ?? 0),
+    converted: Number(row?.converted ?? 0),
   };
+}
+
+/** รายชื่อเจ้าของโน้ต (distinct nb_manage_by) ในขอบเขต all — ป้อนตัวกรอง "ผู้ดูแล" บนแท็บทั้งหมด */
+export async function listNotebookOwners(
+  user: SessionUser,
+): Promise<{ value: number; label: string }[]> {
+  const rows = await db
+    .selectDistinct({ id: notebooks.nbManageBy })
+    .from(notebooks)
+    .where(and(visibleToCondition(user, 'all'), sql`${notebooks.nbManageBy} IS NOT NULL`));
+  const ids = rows.map((r) => r.id).filter((x): x is number => x != null);
+  if (ids.length === 0) return [];
+  const names = displayNameMap(await loadUserMap(ids));
+  return ids
+    .map((id) => ({ value: id, label: names.get(id) ?? String(id) }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'th'));
 }
 
 export { loadUserMap, loadHistoriesMap, displayNameMap };

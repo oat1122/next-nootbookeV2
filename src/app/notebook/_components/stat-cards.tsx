@@ -10,6 +10,7 @@ const ICONS = {
   today: 'M3 4h18v18H3zM16 2v4M8 2v4M3 10h18M12 14v3M12 14h3',
   overdue: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 8v4M12 16h.01',
   won: 'M22 11.1V12a10 10 0 1 1-5.9-9.1M22 4 12 14l-3-3',
+  converted: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M16 11l2 2 4-4',
 } as const;
 
 const COLORS = {
@@ -17,6 +18,7 @@ const COLORS = {
   today: { bg: '#FCEFD2', fg: '#9A6A00' },
   overdue: { bg: '#FBE3DF', fg: '#C2554A' },
   won: { bg: '#DCF3E3', fg: '#1B7A45' },
+  converted: { bg: '#D6EDF2', fg: '#1E7B8C' },
 } as const;
 
 /** stat cards 4 ตัว — server (รับตัวเลขจาก getNotebookStats) */
@@ -29,10 +31,11 @@ export function StatCards({ stats, scope }: { stats: NotebookStats; scope: Scope
     { key: 'today', value: stats.dueToday, label: 'ต้องติดตามวันนี้' },
     { key: 'overdue', value: stats.overdue, label: 'เลยกำหนดแล้ว' },
     { key: 'won', value: stats.won, label: 'ได้งานแล้ว' },
+    { key: 'converted', value: stats.converted, label: 'เป็นลูกค้าแล้ว' },
   ];
 
   return (
-    <div className="mb-5 grid grid-cols-2 gap-3.5 md:grid-cols-4">
+    <div className="mb-5 grid grid-cols-2 gap-3.5 md:grid-cols-5">
       {cards.map((c, i) => (
         <m.div
           key={c.key}

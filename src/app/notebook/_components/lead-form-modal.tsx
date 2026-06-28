@@ -1,19 +1,18 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { UserPlus, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import { UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { checkNotebookDuplicate, createLeadNotebook } from '@/server/notebook/actions';
+import { createLeadNotebook } from '@/server/notebook/actions';
 import { useNotebookAction } from '../_lib/run-action';
 import { ModalShell, FormField } from './modal-shell';
+import { useDupCheck, DupWarning } from './dup-check';
 import { useNotebookUI } from './notebook-ui';
 
 const trimOrNull = (s: string) => (s.trim() === '' ? null : s.trim());
 
-type Dup = { customers: string[]; notebooks: string[] };
-
-/** สร้างลีดใหม่ (lead_queue/standard ตามสิทธิ์) + เตือนเบอร์ซ้ำสด ๆ */
+/** สร้างลีดใหม่ (lead_queue/standard ตามสิทธิ์) + เตือนเบอร์/อีเมลซ้ำสด ๆ */
 export function LeadFormModal({ onClose }: { onClose: () => void }) {
   const { perms } = useNotebookUI();
   const bothScopes = perms.canCreateLeadQueue && perms.canCreateLeadMine;
@@ -29,33 +28,10 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
   const [note, setNote] = useState('');
   const [remark, setRemark] = useState('');
   const [scope, setScope] = useState<'queue' | 'mine'>(defaultScope);
-  const [dup, setDup] = useState<Dup | null>(null);
   const [error, setError] = useState('');
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { pending, run } = useNotebookAction();
-
-  // เตือนเบอร์ซ้ำ (debounce) — setState อยู่ใน callback ของ timeout (ไม่ sync ใน effect body)
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      const digits = tel1.replace(/[^0-9]/g, '');
-      if (digits.length < 8) {
-        setDup(null);
-        return;
-      }
-      try {
-        const res = await checkNotebookDuplicate({ type: 'phone', value: tel1 });
-        const customers = res.customers.map((c) => c.cus_company || c.cus_name || '—');
-        const notebooks = res.notebooks.map((n) => n.nb_customer_name || '—');
-        setDup(customers.length || notebooks.length ? { customers, notebooks } : null);
-      } catch {
-        setDup(null);
-      }
-    }, 400);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [tel1]);
+  const dup = useDupCheck(tel1, email);
+  const dupNames = [...dup.customers, ...dup.notebooks];
 
   function save() {
     if (!firstname.trim() || !lastname.trim() || !tel1.trim()) {
@@ -78,7 +54,7 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
           cus_email: trimOrNull(email),
           cd_note: trimOrNull(note),
           cd_remark: trimOrNull(remark),
-          is_possible_duplicate: !!dup,
+          is_possible_duplicate: dupNames.length > 0,
         }),
       { success: 'สร้างลีดใหม่เรียบร้อย', onDone: onClose },
     );
@@ -140,20 +116,7 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
           </FormField>
         </div>
 
-        {dup && (
-          <div
-            className="flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-[13px]"
-            style={{ background: '#FBF0DC', color: '#9A6A00' }}
-          >
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-            <div>
-              <div className="font-semibold">เบอร์นี้อาจซ้ำกับรายการที่มีอยู่</div>
-              <div className="mt-0.5 opacity-90">
-                {[...dup.customers, ...dup.notebooks].slice(0, 3).join(', ')} — ตรวจสอบก่อนบันทึก
-              </div>
-            </div>
-          </div>
-        )}
+        <DupWarning names={dupNames} label="เบอร์/อีเมลนี้อาจซ้ำกับรายการที่มีอยู่" />
 
         <div>
           <span className="text-ink-2 mb-1.5 block text-[13px] font-semibold">รู้จักจากไหน</span>
