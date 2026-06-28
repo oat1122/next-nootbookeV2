@@ -295,4 +295,42 @@ export async function findNotebookRow(id: number) {
   return nb ?? null;
 }
 
+// ── stat cards (สรุปต่อ scope/entry_type สำหรับหน้า list) ─────────────────────
+
+/** วันนี้โซน Asia/Bangkok เป็น 'YYYY-MM-DD' (en-CA = รูปแบบ ISO) — ใช้เทียบ nb_next_followup_date */
+function bangkokToday(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+}
+
+export type NotebookStats = { total: number; dueToday: number; overdue: number; won: number };
+
+/**
+ * สรุปตัวเลข stat cards — อิงแค่ scope + entry_type (ไม่อิง status/search/date chip)
+ * ให้ตัวเลขภาพรวมของแท็บคงที่ ไม่แกว่งตามตัวกรองรายการ (เลียนดีไซน์ที่นับจาก scope ล้วน)
+ */
+export async function getNotebookStats(
+  filters: { scope?: string | null; entry_type?: string | null },
+  user: SessionUser,
+): Promise<NotebookStats> {
+  const where = buildNotebookFilters({ scope: filters.scope, entry_type: filters.entry_type }, user);
+  const today = bangkokToday();
+  const notClosed = sql`(${notebooks.nbStatus} IS NULL OR ${notebooks.nbStatus} NOT IN ('ได้งาน', 'หลุด', 'ไม่ได้งาน'))`;
+  const [row] = await db
+    .select({
+      total: sql<number>`COUNT(*)`,
+      dueToday: sql<number>`SUM(CASE WHEN ${notClosed} AND ${notebooks.nbNextFollowupDate} = ${today} THEN 1 ELSE 0 END)`,
+      overdue: sql<number>`SUM(CASE WHEN ${notClosed} AND ${notebooks.nbNextFollowupDate} IS NOT NULL AND ${notebooks.nbNextFollowupDate} < ${today} THEN 1 ELSE 0 END)`,
+      won: sql<number>`SUM(CASE WHEN ${notebooks.nbStatus} = 'ได้งาน' THEN 1 ELSE 0 END)`,
+    })
+    .from(notebooks)
+    .where(where);
+
+  return {
+    total: Number(row?.total ?? 0),
+    dueToday: Number(row?.dueToday ?? 0),
+    overdue: Number(row?.overdue ?? 0),
+    won: Number(row?.won ?? 0),
+  };
+}
+
 export { loadUserMap, loadHistoriesMap, displayNameMap };

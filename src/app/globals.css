@@ -231,6 +231,60 @@
   --sidebar-ring: rgba(255, 77, 77, 0.34);
 }
 
+/* =========================================================================
+   Notebook scope — โทนอุ่นครีม + ส้ม #E1543B ตามดีไซน์ Notebook.dc.html
+   override token ของ shadcn เฉพาะใต้ .notebook-scope → Button/Dialog/Card/Table/Input
+   เปลี่ยนหน้าตาตามดีไซน์ให้อัตโนมัติ (เน้น light ตามดีไซน์ — ไม่ทำ dark)
+   ========================================================================= */
+.notebook-scope {
+  --background: #faf7f3;
+  --foreground: #23262f;
+  --surface: #ffffff;
+  --surface-2: #f4f0ea;
+  --surface-3: #f0ebe3;
+  --card: #ffffff;
+  --card-foreground: #23262f;
+  --popover: #ffffff;
+  --popover-foreground: #23262f;
+
+  --primary: #e1543b;
+  --primary-foreground: #ffffff;
+  --brand-soft: #fceeea;
+  --brand-ring: rgba(225, 84, 59, 0.32);
+
+  --secondary: #f0ebe3;
+  --secondary-foreground: #5c564d;
+  --muted: #f4f0ea;
+  --muted-foreground: #857e74;
+  --accent: #f4f0ea;
+  --accent-foreground: #23262f;
+
+  --destructive: #d5503d;
+
+  --border: #ece7df;
+  --border-2: #e6e0d7;
+  --border-strong: #e0dad1;
+  --input: #e6e0d7;
+  --ring: rgba(225, 84, 59, 0.32);
+
+  --ink-2: #5c564d;
+  --ink-3: #857e74;
+  --ink-4: #a8a29a;
+
+  --radius: 0.75rem;
+}
+
+@keyframes nbSlideIn {
+  from {
+    transform: translateX(40px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

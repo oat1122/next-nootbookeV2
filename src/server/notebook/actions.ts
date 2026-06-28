@@ -895,3 +895,44 @@ export const checkNotebookDuplicate = authedAction(
     };
   },
 );
+
+// ── assignee picker (read action สำหรับ assign dialog) ───────────────────────
+
+/**
+ * รายชื่อ sales ที่รับงานได้ (active + มี sub-role SALES_OFFLINE/SUPPORT_SALES/HEAD_OFFLINE)
+ * — assignNotebooks ตรวจ eligibility ต่อคนซ้ำอีกชั้น (loadAssignableAssignee) ตอนมอบหมายจริง
+ */
+export const listAssignableSalesUsers = authedAction(async (user: SessionUser) => {
+  if (!canAssignNotebookQueue(user)) {
+    throw new ForbiddenError('Unauthorized: You do not have permission to assign notebooks.');
+  }
+  const rows = await db
+    .selectDistinct({
+      userId: users.userId,
+      username: users.username,
+      userNickname: users.userNickname,
+      userFirstname: users.userFirstname,
+      userLastname: users.userLastname,
+      role: users.role,
+    })
+    .from(users)
+    .innerJoin(userSubRoles, eq(userSubRoles.usrUserId, users.userId))
+    .innerJoin(masterSubRoles, eq(masterSubRoles.msrId, userSubRoles.usrSubRoleId))
+    .where(
+      and(
+        eq(users.userIsEnable, true),
+        eq(users.userIsDeleted, false),
+        eq(masterSubRoles.msrIsActive, true),
+        inArray(masterSubRoles.msrCode, [
+          SUB_ROLE.SALES_OFFLINE,
+          SUB_ROLE.SUPPORT_SALES,
+          SUB_ROLE.HEAD_OFFLINE,
+        ]),
+      ),
+    );
+
+  return rows.map((r) => ({
+    user_id: r.userId,
+    name: resolveUserDisplayName(r) ?? String(r.userId),
+  }));
+});
