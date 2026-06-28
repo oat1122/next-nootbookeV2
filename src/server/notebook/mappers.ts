@@ -224,7 +224,10 @@ export function deriveFreshQueue(s: {
 }): boolean {
   if (s.nbConvertedAt) return false;
   if (s.nbWorkflow !== 'lead_queue') return false;
-  if (!s.nbManageBy) return false;
+  // ยังไม่มีเจ้าของ = NULL เท่านั้น (unclaimed ใช้ NULL). manage_by=0 คือ userId ของ dev mock user
+  // ซึ่งเป็นเจ้าของจริง — ใช้ `!s.nbManageBy` ไม่ได้เพราะ !0===true จะตี 0 เป็น "ไม่มีเจ้าของ" ผิด
+  // (ให้ตรงกับ isFreshQueueSql ที่ใช้ IS NOT NULL + migration ฝั่ง Laravel ที่ใช้ whereNotNull)
+  if (s.nbManageBy == null) return false;
   const hasStatus = (s.nbStatus ?? '').trim() !== '';
   const hasFollowupDate = !!s.nbNextFollowupDate;
   const hasFollowupNote = (s.nbNextFollowupNote ?? '').trim() !== '';

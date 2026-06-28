@@ -1,5 +1,9 @@
+'use client';
+
+import { m } from 'motion/react';
 import type { NotebookStats } from '@/server/notebook/queries';
 import type { Scope } from '../_lib/types';
+import { rise, riseStagger } from '../_lib/motion';
 
 const ICONS = {
   total: 'M4 19.5V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6.5a2 2 0 0 1 0-4H20',
@@ -29,9 +33,12 @@ export function StatCards({ stats, scope }: { stats: NotebookStats; scope: Scope
 
   return (
     <div className="mb-5 grid grid-cols-2 gap-3.5 md:grid-cols-4">
-      {cards.map((c) => (
-        <div
+      {cards.map((c, i) => (
+        <m.div
           key={c.key}
+          initial={rise.initial}
+          animate={rise.animate}
+          transition={riseStagger(i)}
           className="border-border flex items-center gap-3 rounded-2xl border bg-white px-[18px] py-4 shadow-sm"
         >
           <div
@@ -56,7 +63,7 @@ export function StatCards({ stats, scope }: { stats: NotebookStats; scope: Scope
             </div>
             <div className="text-ink-3 mt-1 text-[13px]">{c.label}</div>
           </div>
-        </div>
+        </m.div>
       ))}
     </div>
   );

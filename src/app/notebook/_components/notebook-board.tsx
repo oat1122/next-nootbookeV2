@@ -1,7 +1,9 @@
 'use client';
 
 import { Eye, Pencil, UserPlus, Trash2, NotebookPen, HandHelping, X } from 'lucide-react';
+import { m, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { rise, riseStagger } from '../_lib/motion';
 import { FOLLOW, FRESH, avatarStyle, followInfo, initials } from '../_lib/notebook-display';
 import { Avatar, StatusChip, ActionChip, FollowChip, FreshQueueBadge, QueueWaitChip } from './chips';
 import { useNotebookUI } from './notebook-ui';
@@ -49,8 +51,8 @@ export function NotebookBoard({
   if (view === 'card') {
     return (
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-        {notebooks.map((n) => (
-          <CardRow key={n.id} item={n} scope={scope} />
+        {notebooks.map((n, i) => (
+          <CardRow key={n.id} item={n} scope={scope} index={i} />
         ))}
       </div>
     );
@@ -86,16 +88,29 @@ export function NotebookBoard({
           <div>{scope === 'queue' ? 'เข้าคิวเมื่อ' : 'ติดตามครั้งหน้า'}</div>
           <div className="text-right">จัดการ</div>
         </div>
-        {notebooks.map((n) => (
-          <TableRow key={n.id} item={n} scope={scope} selectable={selectable} gridClass={g} />
+        {notebooks.map((n, i) => (
+          <TableRow
+            key={n.id}
+            item={n}
+            scope={scope}
+            selectable={selectable}
+            gridClass={g}
+            index={i}
+          />
         ))}
       </div>
 
-      {selectable && selItems.length > 0 && (
-        <div
-          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
-          style={{ width: 'min(1180px, calc(100% - 48px))' }}
-        >
+      <AnimatePresence>
+        {selectable && selItems.length > 0 && (
+          <m.div
+            key="sel-bar"
+            initial={{ opacity: 0, x: '-50%', y: 24 }}
+            animate={{ opacity: 1, x: '-50%', y: 0 }}
+            exit={{ opacity: 0, x: '-50%', y: 24 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed bottom-6 left-1/2 z-40"
+            style={{ width: 'min(1180px, calc(100% - 48px))' }}
+          >
           <div
             className="border-border flex items-center gap-4 rounded-[18px] border bg-white py-3 pr-3.5 pl-[18px]"
             style={{ boxShadow: '0 18px 44px rgba(40,30,20,.16), 0 4px 12px rgba(40,30,20,.08)' }}
@@ -155,8 +170,9 @@ export function NotebookBoard({
               </button>
             </div>
           </div>
-        </div>
-      )}
+          </m.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -173,8 +189,9 @@ function useRowState(item: NotebookItem, scope: Scope) {
     !item.nb_converted_at;
   const converted = !!item.nb_converted_at;
   const overdue = followInfo(item.nb_next_followup_date, item.nb_status).tone === 'overdue';
-  // ลีดใหม่จากคิว — เน้นเฉพาะแท็บ "ลูกค้าของฉัน" เพื่อบอก sales ว่ามีลีดใหม่ต้องรีบโทร
-  const fresh = item.nb_is_fresh_queue && scope === 'mine';
+  // ลีดใหม่จากคิว — เน้นบนแท็บ "ลูกค้าของฉัน" + "ทั้งหมด" (ไม่โชว์บน "คิวกลาง": ทั้งแท็บคือคิวอยู่แล้ว
+  // และลีดในคิวยังไม่มีเจ้าของ → derive ไม่ fresh อยู่แล้ว) บอก sales ว่ามีลีดใหม่ต้องรีบโทร
+  const fresh = item.nb_is_fresh_queue && scope !== 'queue';
   return { ui, perms, canEdit, canQueueAssign, converted, overdue, fresh };
 }
 
@@ -183,15 +200,20 @@ function TableRow({
   scope,
   selectable,
   gridClass,
+  index,
 }: {
   item: NotebookItem;
   scope: Scope;
   selectable: boolean;
   gridClass: string;
+  index: number;
 }) {
   const { ui, canEdit, canQueueAssign, converted, overdue, fresh } = useRowState(item, scope);
   return (
-    <div
+    <m.div
+      initial={rise.initial}
+      animate={rise.animate}
+      transition={riseStagger(index)}
       className={cn(gridClass, 'border-b px-5 transition-colors hover:bg-[#FBF8F4]')}
       style={{
         borderColor: '#F2EDE5',
@@ -227,7 +249,7 @@ function TableRow({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[14.5px] font-semibold">{item.nb_customer_name || '—'}</span>
-            {(fresh || scope === 'queue') && <FreshQueueBadge />}
+            {fresh && <FreshQueueBadge />}
             {item.nb_is_online && (
               <span className="rounded-full px-1.5 py-px text-[11px] font-medium" style={{ background: '#E3EDF8', color: '#2C6BAE' }}>
                 ออนไลน์
@@ -294,14 +316,17 @@ function TableRow({
           </IconBtn>
         )}
       </div>
-    </div>
+    </m.div>
   );
 }
 
-function CardRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
+function CardRow({ item, scope, index }: { item: NotebookItem; scope: Scope; index: number }) {
   const { ui, canEdit, canQueueAssign, overdue, fresh } = useRowState(item, scope);
   return (
-    <div
+    <m.div
+      initial={rise.initial}
+      animate={rise.animate}
+      transition={riseStagger(index)}
       className="border-border rounded-2xl border bg-white p-4 shadow-sm"
       style={
         fresh
@@ -345,7 +370,7 @@ function CardRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
           )}
         </div>
       </div>
-    </div>
+    </m.div>
   );
 }
 

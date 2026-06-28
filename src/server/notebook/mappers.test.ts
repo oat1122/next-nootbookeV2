@@ -91,6 +91,9 @@ describe('deriveFreshQueue (port observer)', () => {
     expect(deriveFreshQueue({ ...base, nbStatus: 'called' })).toBe(false);
     expect(deriveFreshQueue({ ...base, nbNextFollowupNote: 'x' })).toBe(false);
   });
+  it('manage_by=0 (dev mock user) = มีเจ้าของจริง → true (กัน !0 falsy-bug)', () => {
+    expect(deriveFreshQueue({ ...base, nbManageBy: 0 })).toBe(true);
+  });
 });
 
 describe('toNotebookDTO nb_is_fresh_queue (derive on read — กัน stored flag เพี้ยน)', () => {
