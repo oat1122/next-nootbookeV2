@@ -1,13 +1,15 @@
 'use client';
 
-import { Eye, Pencil, UserPlus, Trash2, NotebookPen, HandHelping, Users } from 'lucide-react';
+import { Eye, Pencil, UserPlus, Trash2, NotebookPen, HandHelping } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FOLLOW, followInfo } from '../_lib/notebook-display';
 import { Avatar, StatusChip, ActionChip, FollowChip } from './chips';
 import { useNotebookUI } from './notebook-ui';
 import type { NotebookItem, Scope, ViewMode } from '../_lib/types';
 
+// คลาส grid ต้องเขียนเต็มเป็น literal (Tailwind JIT สแกนจาก source ตรง ๆ)
 const GRID = 'grid grid-cols-[2.4fr_1.5fr_1.2fr_1.4fr_1.5fr_1.3fr] gap-2';
+const GRID_SEL = 'grid grid-cols-[auto_2.4fr_1.5fr_1.2fr_1.4fr_1.5fr_1.3fr] gap-2';
 
 export function NotebookBoard({
   notebooks,
@@ -54,20 +56,62 @@ export function NotebookBoard({
     );
   }
 
+  // เลือกหลายรายการเพื่อมอบหมายพร้อมกัน — เฉพาะตาราง + คิวกลาง + ผู้มีสิทธิ์รับ/มอบหมาย
+  const selectable = scope === 'queue' && (ui.perms.canReserve || ui.perms.canAssign);
+  const g = selectable ? GRID_SEL : GRID;
+  const allSelected = selectable && notebooks.every((n) => ui.selected.has(n.id));
+
   return (
-    <div className="border-border overflow-hidden rounded-2xl border bg-white shadow-sm">
-      <div className={cn(GRID, 'text-ink-3 border-border border-b bg-[#FBF8F3] px-5 py-3.5 text-[12.5px] font-semibold')}>
-        <div>ลูกค้า / ลีด</div>
-        <div>ติดต่อ</div>
-        <div>สถานะ</div>
-        <div>ขั้นตอนถัดไป</div>
-        <div>ติดตามครั้งหน้า</div>
-        <div className="text-right">จัดการ</div>
+    <>
+      <div className="border-border overflow-hidden rounded-2xl border bg-white shadow-sm">
+        <div className={cn(g, 'text-ink-3 border-border border-b bg-[#FBF8F3] px-5 py-3.5 text-[12.5px] font-semibold')}>
+          {selectable && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() =>
+                  allSelected ? ui.clearSelection() : ui.selectAll(notebooks.map((n) => n.id))
+                }
+                className="accent-primary size-4 cursor-pointer"
+                aria-label="เลือกทั้งหมด"
+              />
+            </div>
+          )}
+          <div>ลูกค้า / ลีด</div>
+          <div>ติดต่อ</div>
+          <div>สถานะ</div>
+          <div>ขั้นตอนถัดไป</div>
+          <div>ติดตามครั้งหน้า</div>
+          <div className="text-right">จัดการ</div>
+        </div>
+        {notebooks.map((n) => (
+          <TableRow key={n.id} item={n} scope={scope} selectable={selectable} gridClass={g} />
+        ))}
       </div>
-      {notebooks.map((n) => (
-        <TableRow key={n.id} item={n} scope={scope} />
-      ))}
-    </div>
+
+      {selectable && ui.selected.size > 0 && (
+        <div className="border-border sticky bottom-4 z-10 mt-3 flex items-center justify-between gap-3 rounded-2xl border bg-white px-5 py-3 shadow-lg">
+          <span className="text-[14px] font-semibold">เลือก {ui.selected.size} รายการ</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={ui.clearSelection}
+              className="border-border text-ink-2 hover:bg-surface-2 rounded-xl border bg-white px-4 py-2 text-[13.5px] font-medium"
+            >
+              ล้าง
+            </button>
+            <button
+              type="button"
+              onClick={ui.openAssignSelected}
+              className="bg-primary text-primary-foreground rounded-xl px-5 py-2 text-[13.5px] font-semibold hover:brightness-95"
+            >
+              มอบหมาย
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -75,18 +119,32 @@ function useRowState(item: NotebookItem) {
   const ui = useNotebookUI();
   const { perms } = ui;
   const canEdit = perms.canManageAll || item.nb_manage_by === perms.userId;
-  const canReserve =
-    perms.canReserve && item.nb_workflow === 'lead_queue' && !item.nb_manage_by && !item.nb_converted_at;
+  // คิวกลางที่ยังว่าง + ยังไม่ปิดดีล → กด "รับลีดนี้" เปิด dialog (รับเอง/มอบให้คนอื่น)
+  const canQueueAssign =
+    (perms.canReserve || perms.canAssign) &&
+    item.nb_workflow === 'lead_queue' &&
+    !item.nb_manage_by &&
+    !item.nb_converted_at;
   const converted = !!item.nb_converted_at;
   const overdue = followInfo(item.nb_next_followup_date, item.nb_status).tone === 'overdue';
-  return { ui, perms, canEdit, canReserve, converted, overdue };
+  return { ui, perms, canEdit, canQueueAssign, converted, overdue };
 }
 
-function TableRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
-  const { ui, canEdit, canReserve, converted, overdue } = useRowState(item);
+function TableRow({
+  item,
+  scope,
+  selectable,
+  gridClass,
+}: {
+  item: NotebookItem;
+  scope: Scope;
+  selectable: boolean;
+  gridClass: string;
+}) {
+  const { ui, canEdit, canQueueAssign, converted, overdue } = useRowState(item);
   return (
     <div
-      className={cn(GRID, 'border-b px-5 transition-colors hover:bg-[#FBF8F4]')}
+      className={cn(gridClass, 'border-b px-5 transition-colors hover:bg-[#FBF8F4]')}
       style={{
         borderColor: '#F2EDE5',
         paddingTop: 16,
@@ -95,6 +153,18 @@ function TableRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
         boxShadow: overdue ? `inset 3px 0 0 ${FOLLOW.overdue.accent}` : undefined,
       }}
     >
+      {selectable && (
+        <div className="flex items-center self-center">
+          <input
+            type="checkbox"
+            checked={ui.selected.has(item.id)}
+            onChange={() => ui.toggleSelect(item.id)}
+            className="accent-primary size-4 cursor-pointer"
+            aria-label="เลือกลีดนี้"
+          />
+        </div>
+      )}
+
       {/* customer */}
       <button
         type="button"
@@ -145,14 +215,9 @@ function TableRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
         <IconBtn title="ดูรายละเอียด" onClick={() => ui.openDetail(item.id)}>
           <Eye className="size-[18px]" />
         </IconBtn>
-        {canReserve && scope === 'queue' && (
-          <IconBtn title="รับลีดนี้" color="#1E7A45" onClick={() => ui.reserve(item)}>
+        {canQueueAssign && scope === 'queue' && (
+          <IconBtn title="รับลีดนี้" color="#1E7A45" onClick={() => ui.openAssign([item])}>
             <HandHelping className="size-[18px]" />
-          </IconBtn>
-        )}
-        {ui.perms.canAssign && scope === 'queue' && !item.nb_converted_at && (
-          <IconBtn title="มอบหมายให้ฝ่ายขาย" color="#2C5FA8" onClick={() => ui.openAssign(item)}>
-            <Users className="size-[18px]" />
           </IconBtn>
         )}
         {canEdit && (
@@ -176,7 +241,7 @@ function TableRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
 }
 
 function CardRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
-  const { ui, canEdit, canReserve, overdue } = useRowState(item);
+  const { ui, canEdit, canQueueAssign, overdue } = useRowState(item);
   return (
     <div
       className="border-border rounded-2xl border bg-white p-4 shadow-sm"
@@ -201,8 +266,8 @@ function CardRow({ item, scope }: { item: NotebookItem; scope: Scope }) {
           <IconBtn title="ดู" onClick={() => ui.openDetail(item.id)}>
             <Eye className="size-[17px]" />
           </IconBtn>
-          {canReserve && scope === 'queue' && (
-            <IconBtn title="รับลีดนี้" color="#1E7A45" onClick={() => ui.reserve(item)}>
+          {canQueueAssign && scope === 'queue' && (
+            <IconBtn title="รับลีดนี้" color="#1E7A45" onClick={() => ui.openAssign([item])}>
               <HandHelping className="size-[17px]" />
             </IconBtn>
           )}

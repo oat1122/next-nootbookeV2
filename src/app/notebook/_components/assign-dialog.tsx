@@ -1,20 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Check, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, UserCheck, Users } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { assignNotebook, listAssignableSalesUsers } from '@/server/notebook/actions';
+import {
+  assignNotebook,
+  assignNotebooks,
+  listAssignableSalesUsers,
+  reserveNotebook,
+} from '@/server/notebook/actions';
 import { useNotebookAction } from '../_lib/run-action';
+import { useNotebookUI } from './notebook-ui';
 import type { NotebookItem } from '../_lib/types';
 
 type SalesUser = { user_id: number; name: string };
+type Selection = 'self' | number;
 
-/** มอบหมาย notebook (queue) ให้ฝ่ายขาย — โหลดรายชื่อจาก listAssignableSalesUsers */
-export function AssignDialog({ item, onClose }: { item: NotebookItem; onClose: () => void }) {
+/**
+ * มอบหมาย lead จากคิว — เลือก "รับเอง (ตัวฉัน)" หรือมอบให้ฝ่ายขายคนอื่น
+ * รองรับหลายรายการพร้อมกัน (bulk) — รายชื่อจาก listAssignableSalesUsers
+ */
+export function AssignDialog({ items, onClose }: { items: NotebookItem[]; onClose: () => void }) {
+  const { perms } = useNotebookUI();
   const [users, setUsers] = useState<SalesUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<number | null>(null);
+  const [sel, setSel] = useState<Selection | null>(null);
   const { pending, run } = useNotebookAction();
 
   useEffect(() => {
@@ -27,10 +38,34 @@ export function AssignDialog({ item, onClose }: { item: NotebookItem; onClose: (
     };
   }, []);
 
-  function assign() {
-    if (!sel) return;
-    run(() => assignNotebook(item.id, sel), { success: 'มอบหมายงานแล้ว', onDone: onClose });
+  // "คนอื่น" = ตัดตัวเองออก (ตัวเองอยู่ในตัวเลือก "รับเอง" ด้านบนผ่าน reserve)
+  const others = useMemo(
+    () => users.filter((u) => u.user_id !== perms.userId),
+    [users, perms.userId],
+  );
+
+  function submit() {
+    if (sel == null) return;
+    const ids = items.map((i) => i.id);
+    if (sel === 'self') {
+      // ponytail: loop reserveNotebook (atomic claim ต่อแถว) แทนเพิ่ม bulk-reserve action ใหม่
+      run(
+        async () => {
+          for (const id of ids) await reserveNotebook(id);
+        },
+        { success: 'รับลีดเข้าดูแลแล้ว', onDone: onClose },
+      );
+    } else if (ids.length === 1) {
+      run(() => assignNotebook(ids[0], sel), { success: 'มอบหมายงานแล้ว', onDone: onClose });
+    } else {
+      run(() => assignNotebooks({ notebook_ids: ids, sales_user_id: sel }), {
+        success: `มอบหมาย ${ids.length} รายการแล้ว`,
+        onDone: onClose,
+      });
+    }
   }
+
+  const subtitle = items.length === 1 ? items[0].nb_customer_name || '—' : `เลือก ${items.length} รายการ`;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -40,18 +75,38 @@ export function AssignDialog({ item, onClose }: { item: NotebookItem; onClose: (
             <Users className="size-5" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold">มอบหมายให้ฝ่ายขาย</div>
-            <div className="text-ink-3 truncate text-[13px]">{item.nb_customer_name || '—'}</div>
+            <div className="font-bold">มอบหมายลีด</div>
+            <div className="text-ink-3 truncate text-[13px]">{subtitle}</div>
           </div>
         </div>
 
         <div className="max-h-72 overflow-y-auto p-2">
+          {perms.canReserve && (
+            <>
+              <button
+                type="button"
+                onClick={() => setSel('self')}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-[14px] transition-colors',
+                  sel === 'self' ? 'bg-surface-2 font-semibold' : 'hover:bg-surface-2/60',
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <UserCheck className="text-primary size-4" />
+                  รับเอง (ตัวฉัน)
+                </span>
+                {sel === 'self' && <Check className="text-primary size-4" />}
+              </button>
+              <div className="text-ink-4 px-3 pt-2.5 pb-1 text-[12px] font-medium">มอบให้คนอื่น</div>
+            </>
+          )}
+
           {loading ? (
             <div className="text-ink-4 px-3 py-8 text-center text-[13px]">กำลังโหลดรายชื่อ...</div>
-          ) : users.length === 0 ? (
+          ) : others.length === 0 ? (
             <div className="text-ink-4 px-3 py-8 text-center text-[13px]">ไม่พบฝ่ายขายที่รับงานได้</div>
           ) : (
-            users.map((u) => {
+            others.map((u) => {
               const on = sel === u.user_id;
               return (
                 <button
@@ -81,14 +136,14 @@ export function AssignDialog({ item, onClose }: { item: NotebookItem; onClose: (
           </button>
           <button
             type="button"
-            onClick={assign}
-            disabled={pending || !sel}
+            onClick={submit}
+            disabled={pending || sel == null}
             className={cn(
               'bg-primary text-primary-foreground rounded-xl px-6 py-2.5 text-[14px] font-semibold transition hover:brightness-95',
-              (pending || !sel) && 'opacity-50',
+              (pending || sel == null) && 'opacity-50',
             )}
           >
-            มอบหมาย
+            ยืนยัน
           </button>
         </div>
       </DialogContent>

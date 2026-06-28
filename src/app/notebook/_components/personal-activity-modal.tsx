@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CalendarClock } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { createPersonalActivityNotebook } from '@/server/notebook/actions';
 import { useNotebookAction } from '../_lib/run-action';
@@ -41,11 +41,10 @@ export function PersonalActivityModal({ onClose }: { onClose: () => void }) {
     >
       <div className="grid gap-3.5">
         <FormField label="วันที่" required>
-          <Input
-            type="date"
+          <DatePicker
             value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-11 rounded-xl bg-white text-[14.5px]"
+            onChange={setDate}
+            className="h-11 w-full rounded-xl border-input border bg-white px-3 text-[14.5px]"
           />
         </FormField>
         <FormField label="รายละเอียด" required>

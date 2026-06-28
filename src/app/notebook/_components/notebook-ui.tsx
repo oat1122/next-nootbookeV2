@@ -19,11 +19,16 @@ type EditState = { mode: 'create' | 'edit'; item?: NotebookItem };
 type Ctx = {
   perms: NotebookPerms;
   pending: boolean;
+  selected: Set<number>;
   openCreate: (type: CreateType) => void;
   openEdit: (item: NotebookItem) => void;
   openDetail: (id: number) => void;
   openDelete: (item: NotebookItem) => void;
-  openAssign: (item: NotebookItem) => void;
+  openAssign: (items: NotebookItem[]) => void;
+  openAssignSelected: () => void;
+  toggleSelect: (id: number) => void;
+  selectAll: (ids: number[]) => void;
+  clearSelection: () => void;
   convert: (item: NotebookItem) => void;
   reserve: (item: NotebookItem) => void;
 };
@@ -56,13 +61,15 @@ export function NotebookUIProvider({
   const [personal, setPersonal] = useState(false);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [del, setDel] = useState<NotebookItem | null>(null);
-  const [assignTarget, setAssignTarget] = useState<NotebookItem | null>(null);
+  const [assignItems, setAssignItems] = useState<NotebookItem[] | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const detail = detailId != null ? (notebooks.find((n) => n.id === detailId) ?? null) : null;
 
   const ctx: Ctx = {
     perms,
     pending,
+    selected,
     openCreate(type) {
       if (type === 'standard') setEdit({ mode: 'create' });
       else if (type === 'lead') setLead(true);
@@ -75,7 +82,17 @@ export function NotebookUIProvider({
     },
     openDetail: (id) => setDetailId(id),
     openDelete: (item) => setDel(item),
-    openAssign: (item) => setAssignTarget(item),
+    openAssign: (items) => setAssignItems(items),
+    openAssignSelected: () => setAssignItems(notebooks.filter((n) => selected.has(n.id))),
+    toggleSelect: (id) =>
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }),
+    selectAll: (ids) => setSelected(new Set(ids)),
+    clearSelection: () => setSelected(new Set()),
     convert(item) {
       run(() => convertNotebook(item.id), {
         success: `สร้าง “${item.nb_customer_name ?? ''}” เป็นลูกค้าแล้ว`,
@@ -130,8 +147,14 @@ export function NotebookUIProvider({
         />
       )}
 
-      {assignTarget && (
-        <AssignDialog item={assignTarget} onClose={() => setAssignTarget(null)} />
+      {assignItems && (
+        <AssignDialog
+          items={assignItems}
+          onClose={() => {
+            setAssignItems(null);
+            setSelected(new Set());
+          }}
+        />
       )}
     </NotebookUIContext.Provider>
   );

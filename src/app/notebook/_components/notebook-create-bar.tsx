@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Download, Plus, NotebookPen, UserPlus, HeartHandshake, CalendarClock } from 'lucide-react';
+import { Download, Plus, UserPlus, HeartHandshake, CalendarClock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,6 @@ export function NotebookCreateBar({ perms }: { perms: NotebookPerms }) {
   const ui = useNotebookUI();
 
   const items: { type: CreateType; label: string; icon: React.ReactNode; show: boolean }[] = [
-    { type: 'standard', label: 'บันทึกลูกค้าใหม่', icon: <NotebookPen className="size-4" />, show: perms.canCreateStandard },
     {
       type: 'lead',
       label: 'สร้างลีดเข้าคิว',

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { HeartHandshake, Search, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
@@ -185,19 +186,17 @@ export function CustomerCareModal({ onClose }: { onClose: () => void }) {
 
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <FormField label="วันที่" required>
-            <Input
-              type="date"
+            <DatePicker
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-11 rounded-xl bg-white text-[14.5px]"
+              onChange={setDate}
+              className="h-11 w-full rounded-xl border-input border bg-white px-3 text-[14.5px]"
             />
           </FormField>
           <FormField label="ติดตามครั้งหน้า">
-            <Input
-              type="date"
+            <DatePicker
               value={followDate}
-              onChange={(e) => setFollowDate(e.target.value)}
-              className="h-11 rounded-xl bg-white text-[14.5px]"
+              onChange={setFollowDate}
+              className="h-11 w-full rounded-xl border-input border bg-white px-3 text-[14.5px]"
             />
           </FormField>
         </div>

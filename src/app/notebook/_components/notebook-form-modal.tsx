@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Save } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { createNotebook, updateNotebook } from '@/server/notebook/actions';
@@ -237,11 +238,10 @@ export function NotebookFormModal({
             </div>
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1fr_1.4fr]">
               <Field label="วันที่ต้องติดตาม">
-                <Input
-                  type="date"
+                <DatePicker
                   value={draft.nb_next_followup_date}
-                  onChange={(e) => set('nb_next_followup_date', e.target.value)}
-                  className="h-11 rounded-xl bg-white text-[14.5px]"
+                  onChange={(v) => set('nb_next_followup_date', v)}
+                  className="h-11 w-full rounded-xl border-input border bg-white px-3 text-[14.5px]"
                 />
               </Field>
               <Field label="สิ่งที่ต้องทำครั้งหน้า">
