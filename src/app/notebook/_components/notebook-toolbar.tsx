@@ -6,18 +6,23 @@ import { cn } from '@/lib/utils';
 import { notebookHref } from '../_lib/href';
 import { STATUS, STATUS_ORDER } from '../_lib/notebook-display';
 import type { ViewMode } from '../_lib/types';
+import { DateRangeFilter } from './date-range-filter';
 
-/** toolbar: ค้นหา (debounce→URL) + status chips + table/card toggle */
+/** toolbar: ค้นหา (debounce→URL) + ช่วงเวลา + status chips + table/card toggle */
 export function NotebookToolbar({
   current,
   status,
   view,
   search,
+  startDate,
+  endDate,
 }: {
   current: Record<string, string | undefined>;
   status?: string;
   view: ViewMode;
   search: string;
+  startDate?: string;
+  endDate?: string;
 }) {
   const router = useRouter();
   const [term, setTerm] = useState(search);
@@ -64,6 +69,8 @@ export function NotebookToolbar({
           className="border-border focus-visible:border-ring focus-visible:ring-ring/40 h-11 w-full rounded-xl border bg-white pr-3.5 pl-10 text-[14.5px] outline-none focus-visible:ring-2"
         />
       </div>
+
+      <DateRangeFilter current={current} startDate={startDate} endDate={endDate} />
 
       <div className="flex flex-wrap items-center gap-2">
         {chips.map((c) => {

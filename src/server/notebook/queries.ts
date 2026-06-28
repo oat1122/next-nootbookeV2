@@ -124,6 +124,27 @@ function dateRangeCondition(
   return sql`${col} BETWEEN ${lo} AND ${hi}`;
 }
 
+/**
+ * เงื่อนไข SQL ของแต่ละ "เมตริก" (= การ์ดสรุป) — สร้างใหม่ทุกครั้ง (เลี่ยง reuse instance)
+ * ใช้ร่วมทั้ง getNotebookStats (SUM CASE) และตัวกรองรายการ (metricCondition) เพื่อรับประกัน
+ * ว่าตัวเลขบนการ์ด = จำนวนแถวตอนกดการ์ดเป๊ะ
+ */
+function metricSqls(today: string) {
+  const notClosed = sql`(${notebooks.nbStatus} IS NULL OR ${notebooks.nbStatus} NOT IN ('ได้งาน', 'หลุด', 'ไม่ได้งาน'))`;
+  return {
+    today: sql`(${notClosed} AND ${notebooks.nbNextFollowupDate} = ${today})`,
+    overdue: sql`(${notClosed} AND ${notebooks.nbNextFollowupDate} IS NOT NULL AND ${notebooks.nbNextFollowupDate} < ${today})`,
+    won: sql`(${notebooks.nbStatus} = 'ได้งาน')`,
+    converted: sql`(${notebooks.nbConvertedAt} IS NOT NULL)`,
+  };
+}
+
+function metricCondition(metric?: string | null): SQL | undefined {
+  if (!metric) return undefined;
+  const sqls = metricSqls(bangkokToday());
+  return metric in sqls ? sqls[metric as keyof typeof sqls] : undefined;
+}
+
 /** ฟิลด์ filter ที่ buildNotebookFilters อ่าน (รองรับทั้ง index และ all-tab-stats) */
 export type NotebookFilterInput = {
   scope?: string | null;
@@ -136,6 +157,7 @@ export type NotebookFilterInput = {
   entry_type?: string | null;
   workflow?: string | null;
   manage_by?: number | null;
+  metric?: string | null;
 };
 
 /** เงื่อนไข where รวมของ index (ใช้ทั้ง list และ all-tab-stats) */
@@ -155,6 +177,7 @@ export function buildNotebookFilters(
       : undefined,
     filters.workflow ? eq(notebooks.nbWorkflow, filters.workflow) : undefined,
     filters.manage_by != null ? eq(notebooks.nbManageBy, filters.manage_by) : undefined,
+    metricCondition(filters.metric),
   ];
   return and(...conds);
 }
@@ -336,15 +359,15 @@ export async function getNotebookStats(
     { scope: filters.scope, entry_type: filters.entry_type, manage_by: filters.manage_by },
     user,
   );
-  const today = bangkokToday();
-  const notClosed = sql`(${notebooks.nbStatus} IS NULL OR ${notebooks.nbStatus} NOT IN ('ได้งาน', 'หลุด', 'ไม่ได้งาน'))`;
+  // ใช้เงื่อนไขชุดเดียวกับ metricCondition → ตัวเลขการ์ดตรงกับจำนวนแถวตอนกดการ์ด
+  const m = metricSqls(bangkokToday());
   const [row] = await db
     .select({
       total: sql<number>`COUNT(*)`,
-      dueToday: sql<number>`SUM(CASE WHEN ${notClosed} AND ${notebooks.nbNextFollowupDate} = ${today} THEN 1 ELSE 0 END)`,
-      overdue: sql<number>`SUM(CASE WHEN ${notClosed} AND ${notebooks.nbNextFollowupDate} IS NOT NULL AND ${notebooks.nbNextFollowupDate} < ${today} THEN 1 ELSE 0 END)`,
-      won: sql<number>`SUM(CASE WHEN ${notebooks.nbStatus} = 'ได้งาน' THEN 1 ELSE 0 END)`,
-      converted: sql<number>`SUM(CASE WHEN ${notebooks.nbConvertedAt} IS NOT NULL THEN 1 ELSE 0 END)`,
+      dueToday: sql<number>`SUM(CASE WHEN ${m.today} THEN 1 ELSE 0 END)`,
+      overdue: sql<number>`SUM(CASE WHEN ${m.overdue} THEN 1 ELSE 0 END)`,
+      won: sql<number>`SUM(CASE WHEN ${m.won} THEN 1 ELSE 0 END)`,
+      converted: sql<number>`SUM(CASE WHEN ${m.converted} THEN 1 ELSE 0 END)`,
     })
     .from(notebooks)
     .where(where);

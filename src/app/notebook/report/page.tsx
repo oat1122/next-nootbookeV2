@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { requireUser, ForbiddenError } from '@/server/auth';
 import { getNotebookKpiSummary, getNotebookKpiDetails } from '@/server/notebook/kpi';
+import { canExportNotebookSelfReport } from '@/server/notebook/permissions';
 import { cn } from '@/lib/utils';
 import type { KpiSummaryParams } from '@/server/notebook/validation';
 
@@ -21,6 +22,7 @@ export default async function NotebookReportPage({ searchParams }: { searchParam
   const sp = await searchParams;
   const periodRaw = typeof sp.period === 'string' ? sp.period : 'month';
   const period = (PERIODS.some((p) => p.v === periodRaw) ? periodRaw : 'month') as KpiSummaryParams['period'];
+  const canSelf = canExportNotebookSelfReport(user);
 
   let denied = false;
   let summary: Awaited<ReturnType<typeof getNotebookKpiSummary>> | null = null;
@@ -46,9 +48,17 @@ export default async function NotebookReportPage({ searchParams }: { searchParam
         <ArrowLeft className="size-4" /> กลับไปสมุดจด
       </Link>
 
-      <div className="mb-5">
-        <h1 className="text-[27px] font-bold tracking-tight">รายงานสรุป KPI</h1>
-        <p className="text-ink-2 mt-1.5 text-[14.5px]">สรุปกิจกรรมการจด/อัปเดต notebook {periodLabel && `· ${periodLabel}`}</p>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[27px] font-bold tracking-tight">รายงานสรุป KPI</h1>
+          <p className="text-ink-2 mt-1.5 text-[14.5px]">สรุปกิจกรรมการจด/อัปเดต notebook {periodLabel && `· ${periodLabel}`}</p>
+        </div>
+        {!denied && (
+          <div className="flex flex-wrap items-center gap-2">
+            <PdfButton href={`/notebook/report/pdf?type=standard&period=${period}`} label="ดาวน์โหลด PDF" primary />
+            {canSelf && <PdfButton href={`/notebook/report/pdf?type=self&period=${period}`} label="Self Report (PDF)" />}
+          </div>
+        )}
       </div>
 
       {/* period tabs */}
@@ -154,4 +164,24 @@ function SummaryCard({ value, label, tone, bg }: { value: number; label: string;
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div className="text-ink-2 mb-2.5 text-[14px] font-semibold">{children}</div>;
+}
+
+// ปุ่มดาวน์โหลด PDF — เป็น <a> ตรงไป route handler (GET → attachment) เปิดแท็บใหม่ให้เบราว์เซอร์โหลดเอง
+function PdfButton({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener"
+      className={cn(
+        'inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[14px] font-semibold transition-all',
+        primary
+          ? 'border-primary bg-primary text-primary-foreground hover:opacity-90'
+          : 'border-border text-ink-2 bg-white hover:bg-surface-2',
+      )}
+    >
+      <Download className="size-4" />
+      {label}
+    </a>
+  );
 }

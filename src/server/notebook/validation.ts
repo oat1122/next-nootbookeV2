@@ -64,6 +64,7 @@ export const indexFiltersSchema = z.object({
   action: z.string().max(255).nullable().optional(),
   entry_type: z.enum(['all', 'standard', 'customer_care', 'personal_activity']).nullable().optional(),
   manage_by: z.number().int().min(1).nullable().optional(),
+  metric: z.enum(['today', 'overdue', 'won', 'converted']).nullable().optional(),
   scope: z.enum(['all', 'mine', 'queue']).nullable().optional(),
   workflow: z.enum(['standard', 'lead_queue']).nullable().optional(),
   include: z.string().nullable().optional(),

@@ -1,8 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { m } from 'motion/react';
+import { cn } from '@/lib/utils';
 import type { NotebookStats } from '@/server/notebook/queries';
 import type { Scope } from '../_lib/types';
+import { notebookHref } from '../_lib/href';
 import { rise, riseStagger } from '../_lib/motion';
 
 const ICONS = {
@@ -21,8 +24,28 @@ const COLORS = {
   converted: { bg: '#D6EDF2', fg: '#1E7B8C' },
 } as const;
 
-/** stat cards 4 ตัว — server (รับตัวเลขจาก getNotebookStats) */
-export function StatCards({ stats, scope }: { stats: NotebookStats; scope: Scope }) {
+// กดการ์ด → ล้างตัวกรองอื่น (status/action/search/date) ให้จำนวนแถวตรงเลขบนการ์ด
+const RESET = {
+  status: null,
+  action: null,
+  search: null,
+  start_date: null,
+  end_date: null,
+  page: null,
+} as const;
+
+/** stat cards — กดได้ → กรองรายการตามเมตริก (server ส่งตัวเลข + current/metric ปัจจุบัน) */
+export function StatCards({
+  stats,
+  scope,
+  current,
+  metric,
+}: {
+  stats: NotebookStats;
+  scope: Scope;
+  current: Record<string, string | undefined>;
+  metric?: string;
+}) {
   const totalLabel =
     scope === 'queue' ? 'ลีดในคิว' : scope === 'all' ? 'รายการทั้งหมด' : 'ลูกค้าทั้งหมด';
 
@@ -36,38 +59,46 @@ export function StatCards({ stats, scope }: { stats: NotebookStats; scope: Scope
 
   return (
     <div className="mb-5 grid grid-cols-2 gap-3.5 md:grid-cols-5">
-      {cards.map((c, i) => (
-        <m.div
-          key={c.key}
-          initial={rise.initial}
-          animate={rise.animate}
-          transition={riseStagger(i)}
-          className="border-border flex items-center gap-3 rounded-2xl border bg-white px-[18px] py-4 shadow-sm"
-        >
-          <div
-            className="flex size-11 shrink-0 items-center justify-center rounded-xl"
-            style={{ background: COLORS[c.key].bg, color: COLORS[c.key].fg }}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="size-[21px]"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.9}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+      {cards.map((c, i) => {
+        const active = c.key === 'total' ? !metric : metric === c.key;
+        const fg = COLORS[c.key].fg;
+        return (
+          <m.div key={c.key} initial={rise.initial} animate={rise.animate} transition={riseStagger(i)}>
+            <Link
+              href={notebookHref(current, { ...RESET, metric: c.key === 'total' ? null : c.key })}
+              aria-current={active ? 'true' : undefined}
+              className={cn(
+                'flex h-full items-center gap-3 rounded-2xl border bg-white px-[18px] py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
+                active ? 'border-transparent' : 'border-border',
+              )}
+              style={active ? { boxShadow: `0 0 0 2px ${fg}, 0 1px 2px rgba(0,0,0,.05)` } : undefined}
             >
-              <path d={ICONS[c.key]} />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <div className="num text-[25px] leading-none font-bold">
-              {c.value.toLocaleString('th-TH')}
-            </div>
-            <div className="text-ink-3 mt-1 text-[13px]">{c.label}</div>
-          </div>
-        </m.div>
-      ))}
+              <div
+                className="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                style={{ background: COLORS[c.key].bg, color: fg }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="size-[21px]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.9}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d={ICONS[c.key]} />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <div className="num text-[25px] leading-none font-bold">
+                  {c.value.toLocaleString('th-TH')}
+                </div>
+                <div className="text-ink-3 mt-1 text-[13px]">{c.label}</div>
+              </div>
+            </Link>
+          </m.div>
+        );
+      })}
     </div>
   );
 }

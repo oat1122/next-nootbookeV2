@@ -54,6 +54,10 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
   const page = Math.max(1, Number(str('page')) || 1);
   // ตัวกรองผู้ดูแล (manage_by) ใช้ได้เฉพาะแท็บ all เท่านั้น
   const manage_by = scope === 'all' ? Number(str('manage_by')) || undefined : undefined;
+  // ตัวกรองจากการ์ดสรุป (กดการ์ด → กรองรายการตามเมตริกนั้น)
+  const METRICS = ['today', 'overdue', 'won', 'converted'] as const;
+  const metricRaw = str('metric');
+  const metric = METRICS.includes(metricRaw as (typeof METRICS)[number]) ? metricRaw : undefined;
 
   const filters: IndexFilters = {
     scope,
@@ -64,6 +68,7 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
     start_date: start_date ?? null,
     end_date: end_date ?? null,
     manage_by: manage_by ?? null,
+    metric: (metric as IndexFilters['metric']) ?? null,
     include: 'histories',
     paginate: true,
     per_page: 15,
@@ -112,6 +117,7 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
     start_date,
     end_date,
     manage_by: manage_by ? String(manage_by) : undefined,
+    metric,
     view: view === 'table' ? undefined : view,
   };
 
@@ -148,7 +154,7 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
           current={current}
         />
 
-        <StatCards stats={stats} scope={scope} />
+        <StatCards stats={stats} scope={scope} current={current} metric={metric} />
 
         {scope === 'all' && owners.length > 0 && (
           <div className="mb-3.5">
@@ -156,7 +162,14 @@ export default async function NotebookPage({ searchParams }: { searchParams: Pro
           </div>
         )}
 
-        <NotebookToolbar current={current} status={status} view={view} search={search ?? ''} />
+        <NotebookToolbar
+          current={current}
+          status={status}
+          view={view}
+          search={search ?? ''}
+          startDate={start_date}
+          endDate={end_date}
+        />
 
         <div className="text-ink-3 mb-3 text-[13px]">
           พบ {total.toLocaleString('th-TH')} รายการ {filterNote}
