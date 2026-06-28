@@ -1,0 +1,260 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* =========================================================================
+   Design tokens — ยึดจาก template (docesacc/template-claude-design .../theme.css)
+   60 / 30 / 10 = surface / ink / แดงแบรนด์ #E82020
+   เก็บ "ชื่อ variable ของ shadcn" ไว้เป็นสัญญา (button/card/input/dialog/table
+   เปลี่ยนหน้าตาอัตโนมัติ) แล้วเพิ่ม token พิเศษของ template สำหรับคอมโพเนนต์ใหม่
+   ========================================================================= */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-ibm-plex-thai);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-heading: var(--font-ibm-plex-thai);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-2: var(--sidebar-2);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* token พิเศษของ template (ไม่มีช่องใน shadcn) → utility: bg-surface-2, text-ink-2, text-ok ... */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--foreground);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-border-2: var(--border-2);
+  --color-border-strong: var(--border-strong);
+  --color-brand: var(--primary);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ring: var(--brand-ring);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-border: var(--warn-border);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-border: var(--info-border);
+  --color-teal: var(--teal);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* แบรนด์ (template --accent แดง) → shadcn --primary */
+  --primary: #e82020;
+  --primary-foreground: #ffffff;
+  --brand-soft: #fdecec;
+  --brand-ring: rgba(232, 32, 32, 0.3);
+
+  /* 60 — canvas & surfaces */
+  --background: #f6f6f7;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --surface-2: #f1f1f3;
+  --surface-3: #ebebed;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  /* 30 — ink ramp */
+  --ink-2: #52525b;
+  --ink-3: #8a8a93;
+  --ink-4: #b4b4bb;
+
+  /* shadcn neutral roles → template surfaces/ink (--accent = hover กลางๆ ไม่ใช่แบรนด์) */
+  --secondary: #f1f1f3;
+  --secondary-foreground: #18181b;
+  --muted: #f1f1f3;
+  --muted-foreground: #52525b;
+  --accent: #f1f1f3;
+  --accent-foreground: #18181b;
+
+  --destructive: #e82020;
+
+  /* borders */
+  --border: #e5e5e8;
+  --border-2: #d9d9de;
+  --border-strong: #c9c9d0;
+  --input: #e5e5e8;
+  --ring: rgba(232, 32, 32, 0.3);
+
+  /* status semantics (เงียบไว้ให้แดงเป็นพระเอก) */
+  --ok: #15803d;
+  --ok-soft: #e9f6ee;
+  --ok-border: #bfe3cd;
+  --warn: #b45309;
+  --warn-soft: #fbf1e2;
+  --warn-border: #f0dcb8;
+  --info: #3f3f8a;
+  --info-soft: #ececf7;
+  --info-border: #d4d4ee;
+  --teal: #0f766e; /* ใบส่งของ (โลจิสติกส์/จัดส่ง) — โทน muted เข้าชุด ok/warn/info */
+
+  /* shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 15, 20, 0.06), 0 1px 1px rgba(15, 15, 20, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 15, 20, 0.08), 0 2px 4px rgba(15, 15, 20, 0.04);
+  --shadow-lg: 0 16px 40px rgba(15, 15, 20, 0.14), 0 4px 12px rgba(15, 15, 20, 0.08);
+  --shadow-pop: 0 12px 32px rgba(15, 15, 20, 0.16);
+
+  --radius: 0.625rem;
+
+  /* charts — เก็บ ramp กลางๆ แต่ปรับ chart-1 เป็นแบรนด์ */
+  --chart-1: #e82020;
+  --chart-2: #3f3f8a;
+  --chart-3: #15803d;
+  --chart-4: #b45309;
+  --chart-5: #8a8a93;
+
+  /* sidebar — โหมด light: ขาวนวลจาง + ตัวหนังสือเข้ม (โหมด dark คงรางมืดใน .dark) */
+  --sidebar: #fafafa;
+  --sidebar-2: #f1f1f3;
+  --sidebar-foreground: #18181b;
+  --sidebar-muted: #52525b;
+  --sidebar-border: #e5e5e8;
+  --sidebar-primary: #e82020;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f1f3;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-ring: rgba(232, 32, 32, 0.3);
+}
+
+.dark {
+  --primary: #ff4d4d;
+  --primary-foreground: #1a0707;
+  --brand-soft: rgba(255, 77, 77, 0.13);
+  --brand-ring: rgba(255, 77, 77, 0.34);
+
+  --background: #0a0a0b;
+  --foreground: #f4f4f5;
+  --surface: #161618;
+  --surface-2: #1d1d20;
+  --surface-3: #25252a;
+  --card: #161618;
+  --card-foreground: #f4f4f5;
+  --popover: #161618;
+  --popover-foreground: #f4f4f5;
+
+  --ink-2: #a6a6ae;
+  --ink-3: #76767f;
+  --ink-4: #57575f;
+
+  --secondary: #1d1d20;
+  --secondary-foreground: #f4f4f5;
+  --muted: #1d1d20;
+  --muted-foreground: #a6a6ae;
+  --accent: #1d1d20;
+  --accent-foreground: #f4f4f5;
+
+  --destructive: #ff4d4d;
+
+  --border: #28282d;
+  --border-2: #34343a;
+  --border-strong: #3f3f46;
+  --input: #34343a;
+  --ring: rgba(255, 77, 77, 0.34);
+
+  --ok: #34d399;
+  --ok-soft: rgba(52, 211, 153, 0.13);
+  --ok-border: rgba(52, 211, 153, 0.26);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.13);
+  --warn-border: rgba(251, 191, 36, 0.26);
+  --info: #a5b4fc;
+  --info-soft: rgba(165, 180, 252, 0.12);
+  --info-border: rgba(165, 180, 252, 0.24);
+  --teal: #2dd4bf; /* ใบส่งของ — โทนสว่างเข้าชุด ok/warn/info ในโหมดมืด */
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+
+  --chart-1: #ff4d4d;
+  --chart-2: #a5b4fc;
+  --chart-3: #34d399;
+  --chart-4: #fbbf24;
+  --chart-5: #76767f;
+
+  --sidebar: #0e0e10;
+  --sidebar-2: #18181b;
+  --sidebar-foreground: #f4f4f5;
+  --sidebar-muted: #8f8f99;
+  --sidebar-border: #232327;
+  --sidebar-primary: #ff4d4d;
+  --sidebar-primary-foreground: #1a0707;
+  --sidebar-accent: #18181b;
+  --sidebar-accent-foreground: #f4f4f5;
+  --sidebar-ring: rgba(255, 77, 77, 0.34);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Tailwind v4 Preflight ตั้ง <button> เป็น cursor:default — คืน pointer ให้ปุ่มที่กดได้ */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+  /* ตัวเลขแบบ tabular (IBM Plex Mono) — ใช้ร่วมกับ .num หรือ class font-mono */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      'tnum' 1,
+      'lnum' 1;
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
