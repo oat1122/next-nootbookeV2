@@ -22,24 +22,24 @@ TanStack Query · `next-themes` (dark via `.dark`) · `motion` · `sonner` · Zo
 Per `AGENTS.md`, read `node_modules/next/dist/docs/` before using a Next API — this Next is newer
 than training data.
 
-## Commands (npm — `package-lock.json`)
+## Commands (pnpm — `pnpm-lock.yaml`)
 
-| Command                 | Purpose                                              |
-| ----------------------- | ---------------------------------------------------- |
-| `npm run dev`           | Dev server (http://localhost:3000)                   |
-| `npm run build`         | Production build                                     |
-| `npm run start`         | Production serve via custom `server.ts` (tsx)        |
-| `npm run lint`          | ESLint (`eslint-config-next`)                        |
-| `npm run format`        | Prettier (with `prettier-plugin-tailwindcss`)        |
-| `npm run test`          | Vitest, run once (node env, `*.test.ts` next to src) |
-| `npm run db:introspect` | Read schema FROM the live DB — **never push/migrate** |
-| `npm run db:studio`     | Drizzle Studio                                       |
+| Command              | Purpose                                              |
+| -------------------- | ---------------------------------------------------- |
+| `pnpm dev`           | Dev server (http://localhost:3000)                   |
+| `pnpm build`         | Production build                                     |
+| `pnpm start`         | Production serve via custom `server.ts` (tsx)        |
+| `pnpm lint`          | ESLint (`eslint-config-next`)                        |
+| `pnpm format`        | Prettier (with `prettier-plugin-tailwindcss`)        |
+| `pnpm test`          | Vitest, run once (node env, `*.test.ts` next to src) |
+| `pnpm db:introspect` | Read schema FROM the live DB — **never push/migrate** |
+| `pnpm db:studio`     | Drizzle Studio                                       |
 
 ## Rules carried over from next-accountV2 (still apply)
 
 - **The DB is shared with Laravel/NestJS — never `drizzle-kit push`/`migrate` or alter the schema.**
   `drizzle.config.ts` is introspect-only. Any new table/column is authored as a Laravel migration in
-  `E:\TNP-FormHelpers\tnp-backend\database\migrations`, then `npm run db:introspect` here to sync.
+  `E:\TNP-FormHelpers\tnp-backend\database\migrations`, then `pnpm db:introspect` here to sync.
   `src/server/db/schema/` currently holds only the two auth tables (`users`,
   `personal_access_tokens`) — add introspected notebook tables as you build.
 - **Auth: shared Sanctum `authToken` cookie verified locally** (sha256 hash compare against

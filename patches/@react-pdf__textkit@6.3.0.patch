@@ -1,7 +1,7 @@
-diff --git a/node_modules/@react-pdf/textkit/lib/textkit.js b/node_modules/@react-pdf/textkit/lib/textkit.js
+diff --git a/lib/textkit.js b/lib/textkit.js
 index 0b8b6fa..214035f 100644
---- a/node_modules/@react-pdf/textkit/lib/textkit.js
-+++ b/node_modules/@react-pdf/textkit/lib/textkit.js
+--- a/lib/textkit.js
++++ b/lib/textkit.js
 @@ -343,8 +343,32 @@ const slice$1 = (start, end, run) => {
      const runScale = scale(run);
      const font = getFont(run);

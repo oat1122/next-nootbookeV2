@@ -1,9 +1,11 @@
 # patches/
 
-แพตช์ของ dependency ที่ใช้ผ่าน [`patch-package`](https://github.com/ds300/patch-package)
-ถูก apply อัตโนมัติด้วย `postinstall` script ใน `package.json` ทุกครั้งที่ `npm install`.
+แพตช์ของ dependency ลงทะเบียนใน `pnpm.patchedDependencies` ใน `package.json`
+และถูก apply อัตโนมัติโดย pnpm ทุกครั้งที่ `pnpm install` (ล็อกผ่าน `pnpm-lock.yaml`
+ไม่ต้องมี `postinstall`/patch-package). แก้ไขแพตช์ด้วย `pnpm patch @react-pdf/textkit@6.3.0`
+แล้ว `pnpm patch-commit <dir>`.
 
-## `@react-pdf+textkit+6.3.0.patch`
+## `@react-pdf__textkit@6.3.0.patch`
 
 แพตช์นี้แก้บั๊กการ shape ภาษาไทย 2 อาการที่มีรากเดียวกัน — ทั้งคู่อยู่ใน `slice$1()`
 (เกิดเฉพาะตอน @react-pdf ต้อง **slice** run เช่นในกล่องแคบ/หัวตาราง ไม่ใช่ทุกข้อความ).
