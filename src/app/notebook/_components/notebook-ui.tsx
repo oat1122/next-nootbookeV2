@@ -15,7 +15,7 @@ import { AssignDialog } from './assign-dialog';
 
 export type CreateType = 'standard' | 'lead' | 'care' | 'personal';
 
-type EditState = { mode: 'create' | 'edit'; item?: NotebookItem };
+type EditState = { mode: 'create' | 'edit'; item?: NotebookItem; presetAction?: string };
 
 type Ctx = {
   perms: NotebookPerms;
@@ -23,10 +23,13 @@ type Ctx = {
   selected: Set<number>;
   openCreate: (type: CreateType) => void;
   openEdit: (item: NotebookItem) => void;
+  call: (item: NotebookItem) => void;
   openDetail: (id: number) => void;
   openDelete: (item: NotebookItem) => void;
-  openAssign: (items: NotebookItem[]) => void;
+  openAssign: (items: NotebookItem[], allowReserve?: boolean) => void;
   openAssignSelected: () => void;
+  /** โอนลีดที่รับแล้วให้ฝ่ายขายอื่น (ปิดตัวเลือก "รับเอง") */
+  transfer: (item: NotebookItem) => void;
   toggleSelect: (id: number) => void;
   selectAll: (ids: number[]) => void;
   clearSelection: () => void;
@@ -64,6 +67,7 @@ export function NotebookUIProvider({
   const [del, setDel] = useState<NotebookItem | null>(null);
   const [convertItem, setConvertItem] = useState<NotebookItem | null>(null);
   const [assignItems, setAssignItems] = useState<NotebookItem[] | null>(null);
+  const [assignAllowReserve, setAssignAllowReserve] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const detail = detailId != null ? (notebooks.find((n) => n.id === detailId) ?? null) : null;
@@ -85,10 +89,26 @@ export function NotebookUIProvider({
         setDetailId(null);
         setEdit({ mode: 'edit', item });
       },
+      // โทรหาลูกค้า = เปิดฟอร์มบันทึกการติดตามเดิม โดย preset ขั้นตอนถัดไป = โทร
+      call(item) {
+        setDetailId(null);
+        setEdit({ mode: 'edit', item, presetAction: 'โทร' });
+      },
       openDetail: (id) => setDetailId(id),
       openDelete: (item) => setDel(item),
-      openAssign: (items) => setAssignItems(items),
-      openAssignSelected: () => setAssignItems(notebooks.filter((n) => selected.has(n.id))),
+      openAssign: (items, allowReserve = true) => {
+        setAssignAllowReserve(allowReserve);
+        setAssignItems(items);
+      },
+      openAssignSelected: () => {
+        setAssignAllowReserve(true);
+        setAssignItems(notebooks.filter((n) => selected.has(n.id)));
+      },
+      transfer: (item) => {
+        setDetailId(null);
+        setAssignAllowReserve(false);
+        setAssignItems([item]);
+      },
       toggleSelect: (id) =>
         setSelected((prev) => {
           const next = new Set(prev);
@@ -135,7 +155,12 @@ export function NotebookUIProvider({
       {children}
 
       {edit && (
-        <NotebookFormModal mode={edit.mode} item={edit.item} onClose={() => setEdit(null)} />
+        <NotebookFormModal
+          mode={edit.mode}
+          item={edit.item}
+          presetAction={edit.presetAction}
+          onClose={() => setEdit(null)}
+        />
       )}
       {lead && <LeadFormModal onClose={() => setLead(false)} />}
       {care && <CustomerCareModal onClose={() => setCare(false)} />}
@@ -149,6 +174,7 @@ export function NotebookUIProvider({
           onEdit={() => ctx.openEdit(detail)}
           onConvert={() => ctx.convert(detail)}
           onReserve={() => ctx.reserve(detail)}
+          onTransfer={() => ctx.transfer(detail)}
         />
       )}
 
@@ -173,6 +199,7 @@ export function NotebookUIProvider({
       {assignItems && (
         <AssignDialog
           items={assignItems}
+          allowReserve={assignAllowReserve}
           onClose={() => {
             setAssignItems(null);
             setSelected(new Set());

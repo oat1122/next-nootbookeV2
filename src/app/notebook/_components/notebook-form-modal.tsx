@@ -65,13 +65,19 @@ const trimOrNull = (s: string) => {
 export function NotebookFormModal({
   mode,
   item,
+  presetAction,
   onClose,
 }: {
   mode: 'create' | 'edit';
   item?: NotebookItem;
+  presetAction?: string;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = useState<Draft>(() => (item ? fromItem(item) : emptyDraft()));
+  // presetAction (เช่น 'โทร' จากปุ่มโทรหาลูกค้า) ตั้ง "ขั้นตอนถัดไป" ไว้ให้ตั้งแต่เปิดฟอร์ม
+  const [draft, setDraft] = useState<Draft>(() => {
+    const d = item ? fromItem(item) : emptyDraft();
+    return presetAction ? { ...d, nb_action: presetAction } : d;
+  });
   const [error, setError] = useState('');
   const { pending, run } = useNotebookAction();
   const dup = useDupCheck(draft.nb_contact_number, draft.nb_email, mode === 'edit' ? (item?.id ?? null) : null);

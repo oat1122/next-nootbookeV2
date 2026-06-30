@@ -49,7 +49,16 @@ function cardStyle(on: boolean): React.CSSProperties {
  * มอบหมาย lead จากคิว — เลือก "รับเอง (ตัวฉัน)" หรือมอบให้ฝ่ายขายคนอื่น
  * รองรับหลายรายการพร้อมกัน (bulk) — รายชื่อ + ภาระงานจาก listAssignableSalesUsers
  */
-export function AssignDialog({ items, onClose }: { items: NotebookItem[]; onClose: () => void }) {
+export function AssignDialog({
+  items,
+  allowReserve = true,
+  onClose,
+}: {
+  items: NotebookItem[];
+  /** false = โหมดโอนต่อ (ลีดที่รับแล้ว) — ซ่อนตัวเลือก "รับเอง" */
+  allowReserve?: boolean;
+  onClose: () => void;
+}) {
   const { perms } = useNotebookUI();
   const [users, setUsers] = useState<SalesUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,7 +176,7 @@ export function AssignDialog({ items, onClose }: { items: NotebookItem[]; onClos
 
         {/* body */}
         <div className="max-h-[60vh] overflow-y-auto px-[18px] py-4">
-          {perms.canReserve && (
+          {allowReserve && perms.canReserve && (
             <>
               <div className="text-ink-4 mb-2 px-0.5 text-[12px] font-semibold">รับเข้าดูแลเอง</div>
               <button

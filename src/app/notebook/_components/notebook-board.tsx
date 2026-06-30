@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Pencil, UserPlus, Trash2, NotebookPen, HandHelping, X } from 'lucide-react';
+import { Eye, Pencil, Phone, UserPlus, Trash2, NotebookPen, HandHelping, X } from 'lucide-react';
 import { m, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { rise, riseStagger } from '../_lib/motion';
@@ -300,6 +300,11 @@ function TableRow({
         <IconBtn title="ดูรายละเอียด" onClick={() => ui.openDetail(item.id)}>
           <Eye className="size-[18px]" />
         </IconBtn>
+        {scope === 'mine' && canEdit && item.nb_contact_number && (
+          <IconBtn title="โทรหาลูกค้า" color="#2C5FA8" onClick={() => ui.call(item)}>
+            <Phone className="size-[17px]" />
+          </IconBtn>
+        )}
         {canEdit && (
           <IconBtn title="แก้ไข" onClick={() => ui.openEdit(item)}>
             <Pencil className="size-[17px]" />
@@ -361,6 +366,11 @@ function CardRow({ item, scope, index }: { item: NotebookItem; scope: Scope; ind
           {canQueueAssign && scope === 'queue' && (
             <IconBtn title="รับลีดนี้" color="#1E7A45" onClick={() => ui.openAssign([item])}>
               <HandHelping className="size-[17px]" />
+            </IconBtn>
+          )}
+          {scope === 'mine' && canEdit && item.nb_contact_number && (
+            <IconBtn title="โทรหาลูกค้า" color="#2C5FA8" onClick={() => ui.call(item)}>
+              <Phone className="size-[16px]" />
             </IconBtn>
           )}
           {canEdit && (

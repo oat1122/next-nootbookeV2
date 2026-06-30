@@ -75,6 +75,10 @@ describe('pdf helpers', () => {
       recalls: [
         { customer_name: 'หจก. ทรัพย์เจริญการช่าง', recall_note: 'โทรกลับตามนัด', was_overdue: true, days_overdue: 3, created_at: '2025-06-24T13:20:00.000Z' },
       ],
+      transfers: [
+        { customer_name: 'บริษัท เอบีซี จำกัด', to_user_name: 'สมหญิง (นุ่น)', is_reassign: true, created_at: '2025-06-24T15:05:00.000Z' },
+        { customer_name: 'ร้านปลาทอง (Online)', to_user_name: 'วิชัย', is_reassign: false, created_at: '2025-06-24T16:10:00.000Z' },
+      ],
       activityItems: [
         { nb_customer_name: 'ร้านกาแฟบ้านสวน', nb_is_online: false, nb_contact_person: 'คุณนิด', nb_contact_number: '089-111-2222', nb_email: null, nb_additional_info: 'ปิดงานเสื้อยืด', nb_action: 'โทร', nb_status: 'ได้งาน', nb_remarks: 'มัดจำแล้ว', nb_date: '2025-06-24', nb_time: '10.40', nb_entry_type: 'standard', created_at: '2025-06-24T10:40:00.000Z' },
       ],

@@ -51,6 +51,7 @@ export async function GET(req: Request) {
         printedBy,
         leads: data.lead_additions,
         recalls: data.recall_actions,
+        transfers: data.transfers,
         activityItems: data.activity_items,
       });
       return pdfResponse(buffer, `notebook-self-report-${p.start_date}.pdf`);

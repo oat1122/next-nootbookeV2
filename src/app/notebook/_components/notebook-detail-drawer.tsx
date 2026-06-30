@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Pencil, UserPlus, CalendarDays } from 'lucide-react';
+import { X, Pencil, UserPlus, CalendarDays, ArrowLeftRight } from 'lucide-react';
 import { FOLLOW, followInfo, thaiDateTime } from '../_lib/notebook-display';
 import { Avatar, StatusChip } from './chips';
 import type { NotebookItem, NotebookPerms } from '../_lib/types';
@@ -55,6 +55,7 @@ export function NotebookDetailDrawer({
   onEdit,
   onConvert,
   onReserve,
+  onTransfer,
 }: {
   item: NotebookItem;
   perms: NotebookPerms;
@@ -62,6 +63,7 @@ export function NotebookDetailDrawer({
   onEdit: () => void;
   onConvert: () => void;
   onReserve: () => void;
+  onTransfer: () => void;
 }) {
   const canEdit = perms.canManageAll || item.nb_manage_by === perms.userId;
   const canReserve =
@@ -70,6 +72,13 @@ export function NotebookDetailDrawer({
     !item.nb_manage_by &&
     !item.nb_converted_at;
   const converted = !!item.nb_converted_at;
+  // โอนลีดที่ "รับแล้ว" ให้ฝ่ายขายอื่น — เฉพาะลีด standard/lead_queue ที่มีเจ้าของและยังไม่ converted
+  const canTransfer =
+    perms.canAssign &&
+    !!item.nb_manage_by &&
+    !converted &&
+    item.nb_entry_type !== 'customer_care' &&
+    item.nb_entry_type !== 'personal_activity';
 
   const f = followInfo(item.nb_next_followup_date, item.nb_status);
   const ft = FOLLOW[f.tone];
@@ -202,6 +211,17 @@ export function NotebookDetailDrawer({
 
         {/* footer */}
         <div className="border-border fixed bottom-0 right-0 flex w-[min(480px,94vw)] gap-2.5 border-t bg-white/95 px-6 py-4 backdrop-blur">
+          {canTransfer && (
+            <button
+              type="button"
+              onClick={onTransfer}
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl px-3.5 py-3 text-[14px] font-semibold"
+              style={{ border: '1px solid #C5D6F0', background: '#EFF4FC', color: '#2F5FA8' }}
+            >
+              <ArrowLeftRight className="size-[17px]" />
+              โอน
+            </button>
+          )}
           {canReserve ? (
             <button
               type="button"

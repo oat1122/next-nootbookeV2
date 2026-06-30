@@ -29,6 +29,9 @@ const C = {
   recallBg: '#fdf8ef',
   personalBar: '#d8b5ac',
   personalBg: '#fbf3f1',
+  transferBar: '#a9c4ea',
+  transferBg: '#f1f6fc',
+  transferFg: '#2f5fa8',
 } as const;
 const THAI = 'IBM Plex Sans Thai';
 const MONO = 'IBM Plex Mono';
@@ -73,6 +76,12 @@ export type RecallInput = {
   recall_note: string | null;
   was_overdue: boolean | null;
   days_overdue: number | null;
+  created_at: string | null;
+};
+export type TransferInput = {
+  customer_name: string;
+  to_user_name: string;
+  is_reassign: boolean | null;
   created_at: string | null;
 };
 
@@ -424,13 +433,39 @@ function RecallSection({ recalls }: { recalls: RecallInput[] }) {
   );
 }
 
-export function SelfReportDoc({ rangeLabel, rangeShort, printedAt, printedBy, leads, recalls, activityGroups }: {
+/** log การโอนลีดให้ฝ่ายขายอื่น (assigned/reassigned ที่ผู้ส่งออกทำเอง) */
+function TransferSection({ transfers }: { transfers: TransferInput[] }) {
+  if (transfers.length === 0) return null;
+  return (
+    <View style={{ marginTop: 18 }}>
+      <Text style={{ fontSize: 11, fontWeight: 700, color: C.ink, marginBottom: 6 }}>การโอนลูกค้าให้ฝ่ายขายอื่น</Text>
+      {transfers.map((t, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: C.hair, borderLeftWidth: 3, borderLeftColor: C.transferBar, backgroundColor: C.transferBg, paddingVertical: 6, paddingLeft: 9, paddingRight: 6 }} wrap={false}>
+          <Text style={{ width: 112, fontFamily: MONO, fontSize: 8, color: C.muted }}>
+            {dayKey(t.created_at) ? `${thaiDate(t.created_at)} ${timeFromDateLike(t.created_at)}` : '—'}
+          </Text>
+          <Text style={{ flexGrow: 1, flexBasis: 0, fontSize: 9, fontWeight: 600, color: C.ink, paddingRight: 6 }}>{t.customer_name}</Text>
+          <Text style={{ width: 14, fontSize: 9, color: C.faint }}>→</Text>
+          <Text style={{ flexGrow: 1, flexBasis: 0, fontSize: 9, fontWeight: 600, color: C.transferFg, paddingRight: 8 }}>{t.to_user_name}</Text>
+          <View style={{ width: 76 }}>
+            <View style={{ alignSelf: 'flex-start', backgroundColor: '#e8effb', borderRadius: 8, paddingVertical: 2, paddingHorizontal: 8 }}>
+              <Text style={{ fontSize: 8, fontWeight: 600, color: C.transferFg }}>{t.is_reassign ? 'เปลี่ยนผู้ดูแล' : 'มอบหมาย'}</Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function SelfReportDoc({ rangeLabel, rangeShort, printedAt, printedBy, leads, recalls, transfers, activityGroups }: {
   rangeLabel: string;
   rangeShort: string;
   printedAt: string;
   printedBy: string;
   leads: LeadInput[];
   recalls: RecallInput[];
+  transfers: TransferInput[];
   activityGroups: DayGroup[];
 }) {
   return (
@@ -447,6 +482,7 @@ export function SelfReportDoc({ rangeLabel, rangeShort, printedAt, printedBy, le
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 18 }}>
           <SummaryCard label="ผู้ส่งออก" value={printedBy} />
           <SummaryCard label="จำนวน lead additions" value={String(leads.length)} accent={C.accent} big />
+          <SummaryCard label="จำนวนการโอน" value={String(transfers.length)} accent={C.transferFg} big />
           <SummaryCard label="จำนวนครั้ง Recall" value={String(recalls.length)} accent="#b45309" big />
           <SummaryCard label="ช่วงวันที่" value={rangeShort} />
         </View>
@@ -462,6 +498,7 @@ export function SelfReportDoc({ rangeLabel, rangeShort, printedAt, printedBy, le
           <Text style={{ fontSize: 8.5, color: C.muted, marginTop: 2 }}>ตารางกิจกรรมประจำวันจาก activity / history รวมธุระส่วนตัวและ recall</Text>
         </View>
         <ActivityTable groups={activityGroups} />
+        <TransferSection transfers={transfers} />
         <RecallSection recalls={recalls} />
         <Footer label="Notebook Self Report · TNP" />
       </Page>
@@ -488,6 +525,7 @@ export function renderSelfReport(p: {
   printedBy: string;
   leads: LeadInput[];
   recalls: RecallInput[];
+  transfers: TransferInput[];
   activityItems: ActivityInput[];
 }): Promise<Buffer> {
   return renderToBuffer(
@@ -497,6 +535,7 @@ export function renderSelfReport(p: {
       printedAt={p.printedAt}
       printedBy={p.printedBy}
       leads={p.leads}
+      transfers={p.transfers}
       recalls={p.recalls}
       activityGroups={buildActivityGroups(p.activityItems)}
     />,

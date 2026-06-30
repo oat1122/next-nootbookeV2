@@ -313,6 +313,34 @@ export async function getNotebookSelfReport(filters: SelfReportFilters, user: Se
     )
     .orderBy(asc(recallActionLogs.createdAt));
 
+  // transfers: ลีดที่ user "โอนออก" ให้ฝ่ายขายอื่น (assigned/reassigned by ตัวเอง) ในช่วง
+  // — ผู้รับดึงจาก new_values.nb_manage_by (snake_case ตาม toNotebookAttributes/recordHistory)
+  const transferRows = await db
+    .select({
+      id: notebookHistories.id,
+      action: notebookHistories.action,
+      newValues: notebookHistories.newValues,
+      customerName: notebooks.nbCustomerName,
+      isOnline: notebooks.nbIsOnline,
+      createdAt: notebookHistories.createdAt,
+    })
+    .from(notebookHistories)
+    .innerJoin(notebooks, eq(notebookHistories.notebookId, notebooks.id))
+    .where(
+      and(
+        eq(notebookHistories.actionBy, user.userId),
+        inArray(notebookHistories.action, ['assigned', 'reassigned']),
+        sql`${notebookHistories.createdAt} BETWEEN ${rStart} AND ${rEnd}`,
+      ),
+    )
+    .orderBy(desc(notebookHistories.createdAt));
+
+  const transferTargetId = (v: unknown): number | null => {
+    const id = Number(parseJson<{ nb_manage_by?: unknown }>(v)?.nb_manage_by);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  };
+  const transferMap = await loadUserMap(transferRows.map((r) => transferTargetId(r.newValues)));
+
   return {
     lead_additions: await mapNotebookRows(leadRows, true),
     activity_items: await mapNotebookRows(activityRows, true),
@@ -324,6 +352,16 @@ export async function getNotebookSelfReport(filters: SelfReportFilters, user: Se
       days_overdue: r.daysOverdue,
       created_at: r.createdAt ? r.createdAt.toISOString() : null,
     })),
+    transfers: transferRows.map((r) => {
+      const toId = transferTargetId(r.newValues);
+      return {
+        id: r.id,
+        customer_name: [r.customerName, r.isOnline ? '(Online)' : null].filter(Boolean).join(' ') || '-',
+        to_user_name: toId ? userName(transferMap.get(toId), false, 'ไม่ระบุ') : 'ไม่ระบุ',
+        is_reassign: r.action === 'reassigned',
+        created_at: r.createdAt ? r.createdAt.toISOString() : null,
+      };
+    }),
     meta: { start_date: start, end_date: end, exported_at: new Date().toISOString() },
   };
 }
