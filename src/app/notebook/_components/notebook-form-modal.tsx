@@ -132,6 +132,10 @@ export function NotebookFormModal({
       setError('กรุณากรอกชื่อลูกค้าและเบอร์โทรก่อนบันทึก');
       return;
     }
+    if (showBizType && !bizType) {
+      setError('กรุณาเลือกหมวดหมู่ธุรกิจ');
+      return;
+    }
     setError('');
     const input = {
       nb_customer_name: draft.nb_customer_name.trim(),
@@ -223,7 +227,7 @@ export function NotebookFormModal({
             </div>
             {showBizType && (
               <div className="mt-3.5">
-                <Field label="หมวดหมู่ธุรกิจ">
+                <Field label="หมวดหมู่ธุรกิจ" required>
                   <Combobox
                     items={bizTypes}
                     value={bizType}
