@@ -1,0 +1,22 @@
+# next-nootbookeV2 (Notebook V2) — 1 แอป = 1 โฟลเดอร์ = 1 compose (ดู E:\deploy-vps\apps\_template)
+# copy โฟลเดอร์นี้ไป ~/apps/notebookv2/ บน VPS แล้ว `docker compose up -d --build`
+# nginx บน host proxy notebookv2.thanaplus-webapp.tech → 127.0.0.1:3003
+services:
+  app:
+    build: .
+    container_name: notebookv2
+    restart: unless-stopped
+    env_file: .env                       # ค่า prod จริง (สร้างบน VPS จาก .env.production)
+    ports:
+      - "127.0.0.1:3003:3000"            # bind localhost เท่านั้น — nginx host เป็นตัวรับ 80/443
+    volumes:
+      - notebookv2_uploads:/app/storage/uploads   # ไฟล์แนบผู้ใช้ persist แยกจาก container (กันหายตอน rebuild)
+    networks:
+      - shared-net                       # คุยกับ shared-mariadb ผ่าน network กลาง
+
+volumes:
+  notebookv2_uploads:
+
+networks:
+  shared-net:
+    external: true                       # network เดียวกับ mariadb (มีอยู่แล้วทั้งเครื่อง)

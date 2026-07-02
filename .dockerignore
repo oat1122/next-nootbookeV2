@@ -1,0 +1,19 @@
+# ของหนัก/สร้างใหม่ในภาพ + ความลับ (env inject ตอน runtime ผ่าน compose ไม่ bake ลงภาพ)
+node_modules
+.next
+out
+build
+.git
+.env*
+server/logs
+storage/uploads
+drizzle
+coverage
+*.tsbuildinfo
+.DS_Store
+# เอกสาร/ไฟล์ dev ที่ไม่ต้องใช้ตอนรัน
+*.md
+*.xlsx
+.claude
+.vscode
+test
