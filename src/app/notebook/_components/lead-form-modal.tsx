@@ -64,6 +64,10 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
       setError('กรุณากรอกชื่อ นามสกุล และเบอร์โทร');
       return;
     }
+    if (!bizType) {
+      setError('กรุณาเลือกหมวดหมู่ธุรกิจ');
+      return;
+    }
     const cusName = (company.trim() || `${firstname.trim()} ${lastname.trim()}`.trim());
     setError('');
     run(
@@ -122,7 +126,7 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <FormField label="หมวดหมู่ธุรกิจ">
+        <FormField label="หมวดหมู่ธุรกิจ" required>
           <Combobox
             items={bizTypes}
             value={bizType}
