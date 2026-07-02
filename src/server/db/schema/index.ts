@@ -17,5 +17,6 @@ export * from './notebook-histories';
 export * from './master-customers';
 export * from './customer-details';
 export * from './master-customer-groups';
+export * from './master-business-types';
 export * from './relation-customer-users';
 export * from './recall-action-logs';

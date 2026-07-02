@@ -1,16 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { createLeadNotebook } from '@/server/notebook/actions';
+import {
+  Combobox,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxIcon,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '@/components/ui/combobox';
+import { createLeadNotebook, listBusinessTypes } from '@/server/notebook/actions';
 import { useNotebookAction } from '../_lib/run-action';
 import { ModalShell, FormField } from './modal-shell';
 import { useDupCheck, DupWarning } from './dup-check';
 import { useNotebookUI } from './notebook-ui';
 
 const trimOrNull = (s: string) => (s.trim() === '' ? null : s.trim());
+
+/** ตัวเลือกหมวดหมู่ธุรกิจ — Combobox base-ui ใช้ { value, label } อัตโนมัติ */
+type BizType = { value: string; label: string };
 
 /** สร้างลีดใหม่ (lead_queue/standard ตามสิทธิ์) + เตือนเบอร์/อีเมลซ้ำสด ๆ */
 export function LeadFormModal({ onClose }: { onClose: () => void }) {
@@ -19,6 +32,8 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
   const defaultScope: 'queue' | 'mine' = perms.canCreateLeadQueue ? 'queue' : 'mine';
 
   const [company, setCompany] = useState('');
+  const [bizTypes, setBizTypes] = useState<BizType[]>([]);
+  const [bizType, setBizType] = useState<BizType | null>(null);
   const [firstname, setFirstname] = useState('');
   const [lastname, setLastname] = useState('');
   const [tel1, setTel1] = useState('');
@@ -33,6 +48,17 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
   const dup = useDupCheck(tel1, email);
   const dupNames = [...dup.customers, ...dup.notebooks];
 
+  // โหลดรายการประเภทธุรกิจตอนเปิดฟอร์ม (idiom เดียวกับ assign-dialog)
+  useEffect(() => {
+    let alive = true;
+    listBusinessTypes()
+      .then((rows) => alive && setBizTypes(rows.map((r) => ({ value: r.bt_id, label: r.bt_name }))))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   function save() {
     if (!firstname.trim() || !lastname.trim() || !tel1.trim()) {
       setError('กรุณากรอกชื่อ นามสกุล และเบอร์โทร');
@@ -46,6 +72,7 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
           cus_channel: online ? 2 : 1,
           target_scope: bothScopes ? scope : defaultScope,
           cus_company: trimOrNull(company),
+          cus_bt_id: bizType?.value ?? null,
           cus_name: cusName,
           cus_firstname: firstname.trim(),
           cus_lastname: lastname.trim(),
@@ -94,6 +121,35 @@ export function LeadFormModal({ onClose }: { onClose: () => void }) {
             })}
           </div>
         )}
+
+        <FormField label="หมวดหมู่ธุรกิจ">
+          <Combobox
+            items={bizTypes}
+            value={bizType}
+            onValueChange={(v) => setBizType((v as BizType | null) ?? null)}
+          >
+            <div className="relative">
+              <ComboboxInput
+                placeholder="ค้นหาและเลือกประเภทธุรกิจ..."
+                className="h-11 rounded-xl bg-white text-[14.5px]"
+              />
+              <div className="absolute top-1/2 right-2.5 flex -translate-y-1/2 items-center gap-1">
+                {bizType && <ComboboxClear />}
+                <ComboboxIcon />
+              </div>
+            </div>
+            <ComboboxContent>
+              <ComboboxEmpty>ไม่พบประเภทธุรกิจ</ComboboxEmpty>
+              <ComboboxList>
+                {(o: BizType) => (
+                  <ComboboxItem key={o.value} value={o}>
+                    {o.label}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </FormField>
 
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <FormField label="บริษัท">

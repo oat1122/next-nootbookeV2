@@ -1,9 +1,10 @@
 'use server';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
-import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { db } from '@/server/db/client';
 import {
+  masterBusinessTypes,
   masterCustomers,
   masterSubRoles,
   notebooks,
@@ -953,4 +954,16 @@ export const listAssignableSalesUsers = authedAction(async (user: SessionUser) =
     name: resolveUserDisplayName(r) ?? String(r.userId),
     load: loadMap.get(r.userId) ?? 0,
   }));
+});
+
+// ── business types (read action สำหรับ dropdown "หมวดหมู่ธุรกิจ" ในฟอร์มลีด) ──
+
+/** ประเภทธุรกิจที่ใช้งานอยู่ เรียงตาม bt_sort — เติม cus_bt_id ตอนสร้างลีด (port getAllBusinessTypes) */
+export const listBusinessTypes = authedAction(async (_user: SessionUser) => {
+  const rows = await db
+    .select({ btId: masterBusinessTypes.btId, btName: masterBusinessTypes.btName })
+    .from(masterBusinessTypes)
+    .where(eq(masterBusinessTypes.btIsUse, 1))
+    .orderBy(asc(masterBusinessTypes.btSort), asc(masterBusinessTypes.btName));
+  return rows.map((r) => ({ bt_id: r.btId, bt_name: r.btName ?? '' }));
 });
