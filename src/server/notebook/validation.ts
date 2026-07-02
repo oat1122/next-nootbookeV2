@@ -50,6 +50,8 @@ export const updateNotebookSchema = z.object({
   nb_next_followup_date: zDate.nullable().optional(),
   nb_next_followup_note: z.string().nullable().optional(),
   nb_is_favorite: z.boolean().optional(),
+  // หมวดหมู่ธุรกิจ — เก็บใน nb_lead_payload.cus_bt_id (customer attribute) ไม่ใช่คอลัมน์ notebook
+  cus_bt_id: z.string().max(36).nullable().optional(),
   _history_action: z.enum(['customer_info_updated']).optional(),
   nb_manage_by: z.number().int().nullable().optional(),
 });

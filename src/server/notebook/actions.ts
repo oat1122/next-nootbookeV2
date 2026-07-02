@@ -209,6 +209,11 @@ export const updateNotebook = authedAction(
     if (present('nb_next_followup_date')) set.nbNextFollowupDate = input.nb_next_followup_date ?? null;
     if (present('nb_next_followup_note')) set.nbNextFollowupNote = input.nb_next_followup_note ?? null;
     if (present('nb_is_favorite')) set.nbIsFavorite = input.nb_is_favorite;
+    // หมวดหมู่ธุรกิจ — merge ลง nb_lead_payload (เก็บที่เดียวกับตอนสร้างลีด) → ไหลต่อไป customer ตอน convert
+    if (present('cus_bt_id')) {
+      const payload = (parseJson(before.nbLeadPayload) as Record<string, unknown> | null) ?? {};
+      set.nbLeadPayload = { ...payload, cus_bt_id: input.cus_bt_id ?? null };
+    }
     // nb_manage_by เปลี่ยนได้เฉพาะ canManageAll (เลียน preparePayload)
     if (canManageAllNotebooks(user) && present('nb_manage_by')) set.nbManageBy = input.nb_manage_by ?? null;
 

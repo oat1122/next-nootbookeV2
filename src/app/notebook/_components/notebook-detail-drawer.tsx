@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { X, Pencil, UserPlus, CalendarDays, ArrowLeftRight } from 'lucide-react';
+import { listBusinessTypes } from '@/server/notebook/actions';
 import { FOLLOW, followInfo, thaiDateTime } from '../_lib/notebook-display';
 import { Avatar, StatusChip } from './chips';
 import type { NotebookItem, NotebookPerms } from '../_lib/types';
@@ -45,6 +47,7 @@ const FACT_ICON = {
   mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm18 2-10 7L2 6',
   source: 'M12 22s8-4.5 8-11.5A8 8 0 0 0 4 10.5C4 17.5 12 22 12 22Zm0-8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
   user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+  office: 'M3 10a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8Zm5-2V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
 } as const;
 
 /** drawer รายละเอียด + ไทม์ไลน์ประวัติ (ขวา) — ปุ่ม convert/edit/reserve ตามสิทธิ์ */
@@ -83,11 +86,34 @@ export function NotebookDetailDrawer({
   const f = followInfo(item.nb_next_followup_date, item.nb_status);
   const ft = FOLLOW[f.tone];
 
+  // หมวดหมู่ธุรกิจ (cus_bt_id เก็บใน nb_lead_payload) — resolve ชื่อฝั่ง client เฉพาะ entry standard
+  const rawBtId = item.nb_lead_payload
+    ? (item.nb_lead_payload as Record<string, unknown>).cus_bt_id
+    : null;
+  const btId = rawBtId == null || rawBtId === '' ? null : String(rawBtId);
+  const showBiz = item.nb_entry_type === 'standard';
+  const [biz, setBiz] = useState<{ id: string; name: string | null } | null>(null);
+  useEffect(() => {
+    if (!showBiz || !btId) return;
+    let alive = true;
+    listBusinessTypes()
+      .then((rows) => alive && setBiz({ id: btId, name: rows.find((r) => r.bt_id === btId)?.bt_name ?? null }))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [showBiz, btId]);
+  // ใช้ชื่อเฉพาะเมื่อ resolve ตรงกับ btId ปัจจุบัน (กันค่าค้างจาก notebook ก่อนหน้า)
+  const bizName = biz && biz.id === btId ? biz.name : null;
+
   const facts: { icon: string; label: string; value: string }[] = [
     { icon: FACT_ICON.phone, label: 'เบอร์โทร', value: item.nb_contact_number || '—' },
     { icon: FACT_ICON.person, label: 'ผู้ติดต่อ', value: item.nb_contact_person || '—' },
     { icon: FACT_ICON.mail, label: 'อีเมล', value: item.nb_email || '—' },
     { icon: FACT_ICON.source, label: 'แหล่งที่มา', value: item.nb_is_online ? 'ออนไลน์' : 'ออนไซต์' },
+    ...(showBiz
+      ? [{ icon: FACT_ICON.office, label: 'หมวดหมู่ธุรกิจ', value: bizName || '—' }]
+      : []),
     { icon: FACT_ICON.user, label: 'ผู้ดูแล', value: userDisplay(item.manage_by_user) },
   ];
 

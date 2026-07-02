@@ -1,17 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Combobox,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxIcon,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
-import { createNotebook, updateNotebook } from '@/server/notebook/actions';
+import { createNotebook, listBusinessTypes, updateNotebook } from '@/server/notebook/actions';
 import { useNotebookAction } from '../_lib/run-action';
 import { ACTION, ACTION_ORDER, STATUS, STATUS_ORDER } from '../_lib/notebook-display';
 import { useDupCheck, DupWarning } from './dup-check';
 import type { NotebookItem } from '../_lib/types';
+
+/** ตัวเลือกหมวดหมู่ธุรกิจ — Combobox base-ui ใช้ { value, label } อัตโนมัติ */
+type BizType = { value: string; label: string };
+
+/** อ่าน cus_bt_id ที่เก็บใน nb_lead_payload (JSON) ของ notebook */
+function leadBtId(item?: NotebookItem): string | null {
+  const raw = item?.nb_lead_payload ? (item.nb_lead_payload as Record<string, unknown>).cus_bt_id : null;
+  return raw == null || raw === '' ? null : String(raw);
+}
 
 type Draft = {
   nb_customer_name: string;
@@ -83,6 +102,28 @@ export function NotebookFormModal({
   const dup = useDupCheck(draft.nb_contact_number, draft.nb_email, mode === 'edit' ? (item?.id ?? null) : null);
   const dupNames = [...dup.customers, ...dup.notebooks];
 
+  // หมวดหมู่ธุรกิจ — ดู/แก้ได้เฉพาะ entry ชนิดลูกค้า/ลีด (standard) ในโหมดแก้ไข
+  const showBizType = mode === 'edit' && item?.nb_entry_type === 'standard';
+  const [bizTypes, setBizTypes] = useState<BizType[]>([]);
+  const [bizType, setBizType] = useState<BizType | null>(null);
+
+  useEffect(() => {
+    if (!showBizType) return;
+    let alive = true;
+    listBusinessTypes()
+      .then((rows) => {
+        if (!alive) return;
+        const opts = rows.map((r) => ({ value: r.bt_id, label: r.bt_name }));
+        setBizTypes(opts);
+        const id = leadBtId(item);
+        if (id) setBizType(opts.find((o) => o.value === id) ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [showBizType, item]);
+
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
@@ -107,7 +148,11 @@ export function NotebookFormModal({
     const action =
       mode === 'create'
         ? () => createNotebook(input)
-        : () => updateNotebook(item!.id, input);
+        : () =>
+            updateNotebook(
+              item!.id,
+              showBizType ? { ...input, cus_bt_id: bizType?.value ?? null } : input,
+            );
     run(action, {
       success: mode === 'create' ? 'บันทึกลูกค้าใหม่เรียบร้อย' : 'อัปเดตการติดตามเรียบร้อย',
       onDone: onClose,
@@ -176,6 +221,39 @@ export function NotebookFormModal({
                 />
               </Field>
             </div>
+            {showBizType && (
+              <div className="mt-3.5">
+                <Field label="หมวดหมู่ธุรกิจ">
+                  <Combobox
+                    items={bizTypes}
+                    value={bizType}
+                    onValueChange={(v) => setBizType((v as BizType | null) ?? null)}
+                  >
+                    <div className="relative">
+                      <ComboboxInput
+                        placeholder="ค้นหาและเลือกประเภทธุรกิจ..."
+                        className="h-11 rounded-xl bg-white text-[14.5px]"
+                      />
+                      <div className="absolute top-1/2 right-2.5 flex -translate-y-1/2 items-center gap-1">
+                        {bizType && <ComboboxClear />}
+                        <ComboboxIcon />
+                      </div>
+                    </div>
+                    <ComboboxContent>
+                      <ComboboxEmpty>ไม่พบประเภทธุรกิจ</ComboboxEmpty>
+                      <ComboboxList>
+                        {(o: BizType) => (
+                          <ComboboxItem key={o.value} value={o}>
+                            {o.label}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </Field>
+              </div>
+            )}
+
             <div className="mt-3.5">
               <FieldLabel>รู้จักลูกค้าจากไหน</FieldLabel>
               <div className="flex gap-2">
