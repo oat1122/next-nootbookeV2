@@ -1,0 +1,44 @@
+# Auto-deploy next-nootbookeV2 ขึ้น VPS ของเราเอง (oat@76.13.197.229)
+# push main -> ssh เข้า VPS -> git pull -> docker compose up -d --build (build บนเครื่อง VPS, ไม่ใช้ registry)
+#
+# ── ตั้งค่าครั้งเดียว ──────────────────────────────────────────────
+# 1) สร้าง deploy keypair ให้ runner ใช้ ssh เข้า VPS (บนเครื่อง dev):
+#      ssh-keygen -t ed25519 -f deploy_ci -N "" -C "gh-actions-notebookv2"
+#    เอา public key ต่อท้าย authorized_keys บน VPS:
+#      ssh oat@76.13.197.229 'cat >> ~/.ssh/authorized_keys' < deploy_ci.pub
+# 2) ใส่ GitHub repo Secrets (Settings → Secrets and variables → Actions):
+#      VPS_HOST     = 76.13.197.229
+#      VPS_USER     = oat
+#      VPS_SSH_KEY  = เนื้อ private key ทั้งไฟล์ deploy_ci (รวม BEGIN/END)
+#      VPS_PORT     = 22            (ไม่ใส่ก็ default 22)
+# 3) ให้ VPS ดึงโค้ดเองได้ (read-only deploy key ของ repo) + clone ครั้งแรก:
+#      ดู runbook ใน scripts/deploy.sh หัวคอมเมนต์
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # ปุ่มกด deploy เองใน Actions
+
+concurrency:
+  group: deploy-vps # กัน deploy ซ้อนกันตอน push รัว ๆ
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy บน VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 20m # build Next บน VPS อาจนานหน่อย
+          script: |
+            set -euo pipefail
+            cd ~/apps/notebookv2
+            git fetch --prune origin
+            git reset --hard origin/main   # .env เป็น untracked -> reset --hard ไม่แตะ
+            bash scripts/deploy.sh
